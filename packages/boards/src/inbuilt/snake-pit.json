@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "snake-pit",
+  "name": "Snake Pit",
+  "author": "inbuilt",
+  "grid": {
+    "rows": 10,
+    "cols": 10,
+    "layout": "boustrophedon",
+    "origin": "bottom-left"
+  },
+  "snakes": [
+    {
+      "from": 99,
+      "to": 76,
+      "style": 0
+    },
+    {
+      "from": 95,
+      "to": 79,
+      "style": 1
+    },
+    {
+      "from": 91,
+      "to": 72,
+      "style": 2
+    },
+    {
+      "from": 84,
+      "to": 78,
+      "style": 3
+    },
+    {
+      "from": 78,
+      "to": 71,
+      "style": 4
+    },
+    {
+      "from": 72,
+      "to": 67,
+      "style": 5
+    },
+    {
+      "from": 67,
+      "to": 61,
+      "style": 6
+    },
+    {
+      "from": 61,
+      "to": 55,
+      "style": 7
+    },
+    {
+      "from": 55,
+      "to": 49,
+      "style": 0
+    },
+    {
+      "from": 49,
+      "to": 43,
+      "style": 1
+    },
+    {
+      "from": 43,
+      "to": 38,
+      "style": 2
+    },
+    {
+      "from": 37,
+      "to": 31,
+      "style": 3
+    },
+    {
+      "from": 26,
+      "to": 20,
+      "style": 4
+    },
+    {
+      "from": 17,
+      "to": 12,
+      "style": 5
+    }
+  ],
+  "ladders": [
+    {
+      "from": 2,
+      "to": 23
+    },
+    {
+      "from": 8,
+      "to": 34
+    },
+    {
+      "from": 20,
+      "to": 57
+    },
+    {
+      "from": 32,
+      "to": 60
+    },
+    {
+      "from": 41,
+      "to": 79
+    }
+  ],
+  "theme": {
+    "paper": "blank"
+  },
+  "source": {
+    "kind": "inbuilt"
+  },
+  "decorations": [
+    {
+      "square": 12,
+      "doodle": "mushroom"
+    },
+    {
+      "square": 55,
+      "doodle": "coffee-stain"
+    },
+    {
+      "square": 67,
+      "doodle": "sparkle"
+    },
+    {
+      "square": 90,
+      "doodle": "grass"
+    }
+  ]
+}

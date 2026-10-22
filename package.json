@@ -1,0 +1,23 @@
+{
+  "name": "snakes-doodle",
+  "private": true,
+  "packageManager": "pnpm@10.34.6",
+  "scripts": {
+    "dev": "turbo run dev --filter=@snakes-doodle/web",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint && node scripts/check-engine-purity.mjs",
+    "balance": "pnpm --filter @snakes-doodle/engine balance",
+    "print:boards": "pnpm --filter @snakes-doodle/web print:boards"
+  },
+  "devDependencies": {
+    "turbo": "2.8.21",
+    "typescript": "5.6.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

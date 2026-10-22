@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "id": "moksha-patam",
+  "name": "Moksha Patam",
+  "author": "inbuilt",
+  "grid": {
+    "rows": 8,
+    "cols": 9,
+    "layout": "boustrophedon",
+    "origin": "bottom-left"
+  },
+  "snakes": [
+    {
+      "from": 71,
+      "to": 49,
+      "style": 0
+    },
+    {
+      "from": 68,
+      "to": 46,
+      "style": 1
+    },
+    {
+      "from": 64,
+      "to": 36,
+      "style": 2
+    },
+    {
+      "from": 60,
+      "to": 42,
+      "style": 3
+    },
+    {
+      "from": 54,
+      "to": 31,
+      "style": 4
+    },
+    {
+      "from": 47,
+      "to": 26,
+      "style": 5
+    },
+    {
+      "from": 39,
+      "to": 20,
+      "style": 6
+    },
+    {
+      "from": 33,
+      "to": 12,
+      "style": 7
+    },
+    {
+      "from": 26,
+      "to": 9,
+      "style": 0
+    },
+    {
+      "from": 16,
+      "to": 5,
+      "style": 1
+    }
+  ],
+  "ladders": [
+    {
+      "from": 2,
+      "to": 18
+    },
+    {
+      "from": 7,
+      "to": 25
+    },
+    {
+      "from": 13,
+      "to": 34
+    },
+    {
+      "from": 22,
+      "to": 40
+    },
+    {
+      "from": 29,
+      "to": 50
+    },
+    {
+      "from": 37,
+      "to": 55
+    },
+    {
+      "from": 44,
+      "to": 63
+    },
+    {
+      "from": 52,
+      "to": 66
+    },
+    {
+      "from": 58,
+      "to": 70
+    }
+  ],
+  "theme": {
+    "paper": "kraft"
+  },
+  "source": {
+    "kind": "inbuilt"
+  },
+  "labels": [
+    {
+      "square": 71,
+      "text": "greed"
+    },
+    {
+      "square": 68,
+      "text": "pride"
+    },
+    {
+      "square": 64,
+      "text": "anger"
+    },
+    {
+      "square": 60,
+      "text": "jealousy"
+    },
+    {
+      "square": 54,
+      "text": "lying"
+    },
+    {
+      "square": 47,
+      "text": "laziness"
+    },
+    {
+      "square": 39,
+      "text": "selfishness"
+    },
+    {
+      "square": 33,
+      "text": "rudeness"
+    },
+    {
+      "square": 26,
+      "text": "teasing"
+    },
+    {
+      "square": 16,
+      "text": "grumpiness"
+    },
+    {
+      "square": 2,
+      "text": "kindness"
+    },
+    {
+      "square": 7,
+      "text": "honesty"
+    },
+    {
+      "square": 13,
+      "text": "sharing"
+    },
+    {
+      "square": 22,
+      "text": "patience"
+    },
+    {
+      "square": 29,
+      "text": "courage"
+    },
+    {
+      "square": 37,
+      "text": "helping"
+    },
+    {
+      "square": 44,
+      "text": "gratitude"
+    },
+    {
+      "square": 52,
+      "text": "friendship"
+    },
+    {
+      "square": 58,
+      "text": "generosity"
+    }
+  ]
+}

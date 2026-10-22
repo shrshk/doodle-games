@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "id": "ladder-climb",
+  "name": "Ladder Climb",
+  "author": "inbuilt",
+  "grid": {
+    "rows": 10,
+    "cols": 10,
+    "layout": "boustrophedon",
+    "origin": "bottom-left"
+  },
+  "snakes": [
+    {
+      "from": 98,
+      "to": 79,
+      "style": 0
+    },
+    {
+      "from": 88,
+      "to": 68,
+      "style": 1
+    },
+    {
+      "from": 62,
+      "to": 41,
+      "style": 2
+    },
+    {
+      "from": 31,
+      "to": 12,
+      "style": 3
+    }
+  ],
+  "ladders": [
+    {
+      "from": 3,
+      "to": 21
+    },
+    {
+      "from": 6,
+      "to": 27
+    },
+    {
+      "from": 11,
+      "to": 48
+    },
+    {
+      "from": 15,
+      "to": 35
+    },
+    {
+      "from": 22,
+      "to": 43
+    },
+    {
+      "from": 33,
+      "to": 52
+    },
+    {
+      "from": 37,
+      "to": 64
+    },
+    {
+      "from": 46,
+      "to": 67
+    },
+    {
+      "from": 50,
+      "to": 71
+    },
+    {
+      "from": 58,
+      "to": 80
+    },
+    {
+      "from": 66,
+      "to": 87
+    },
+    {
+      "from": 75,
+      "to": 94
+    }
+  ],
+  "theme": {
+    "paper": "blank"
+  },
+  "source": {
+    "kind": "inbuilt"
+  },
+  "decorations": [
+    {
+      "square": 9,
+      "doodle": "flower"
+    },
+    {
+      "square": 18,
+      "doodle": "butterfly"
+    },
+    {
+      "square": 40,
+      "doodle": "heart"
+    },
+    {
+      "square": 55,
+      "doodle": "sparkle"
+    },
+    {
+      "square": 84,
+      "doodle": "flower-blue"
+    },
+    {
+      "square": 92,
+      "doodle": "star"
+    }
+  ]
+}

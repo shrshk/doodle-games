@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "quick-doodle",
+  "name": "Quick Doodle",
+  "author": "inbuilt",
+  "grid": {
+    "rows": 6,
+    "cols": 6,
+    "layout": "boustrophedon",
+    "origin": "bottom-left"
+  },
+  "snakes": [
+    {
+      "from": 35,
+      "to": 22,
+      "style": 0
+    },
+    {
+      "from": 28,
+      "to": 9,
+      "style": 1
+    },
+    {
+      "from": 17,
+      "to": 4,
+      "style": 2
+    }
+  ],
+  "ladders": [
+    {
+      "from": 3,
+      "to": 16
+    },
+    {
+      "from": 10,
+      "to": 25
+    },
+    {
+      "from": 20,
+      "to": 33
+    }
+  ],
+  "theme": {
+    "paper": "blank"
+  },
+  "source": {
+    "kind": "inbuilt"
+  },
+  "decorations": [
+    {
+      "square": 6,
+      "doodle": "flower"
+    },
+    {
+      "square": 13,
+      "doodle": "heart"
+    },
+    {
+      "square": 24,
+      "doodle": "sparkle"
+    },
+    {
+      "square": 31,
+      "doodle": "mushroom"
+    }
+  ]
+}

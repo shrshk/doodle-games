@@ -1,0 +1,90 @@
+/* Animation classes used by @snakes-doodle/ui-doodle components. */
+.doodle-hand { font-family: "Gochi Hand", "Patrick Hand", "Comic Sans MS", cursive; }
+.doodle-script { font-family: "Caveat", "Gochi Hand", cursive; }
+
+.doodle-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: doodle-draw var(--draw-duration, 700ms) ease-out forwards;
+  animation-delay: var(--draw-delay, 0ms);
+}
+@keyframes doodle-draw { to { stroke-dashoffset: 0; } }
+
+.doodle-blink { transform-box: fill-box; transform-origin: center; animation: doodle-blink 5.5s infinite; }
+@keyframes doodle-blink { 0%, 95%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+
+.doodle-pop-in { transform-box: fill-box; transform-origin: 50% 100%; animation: doodle-pop-in 260ms ease-out; }
+@keyframes doodle-pop-in { from { transform: scale(0.85, 0.7); } 60% { transform: scale(1.06, 1.05); } to { transform: none; } }
+
+.doodle-pip { transform-box: fill-box; transform-origin: center; animation: doodle-pip 220ms ease-out backwards; }
+@keyframes doodle-pip { from { transform: scale(0); } 70% { transform: scale(1.25); } to { transform: scale(1); } }
+
+.doodle-tumble { transform-box: fill-box; transform-origin: center; animation: doodle-tumble 600ms cubic-bezier(.3,.6,.4,1); }
+@keyframes doodle-tumble {
+  0% { transform: translateY(0) rotate(0); }
+  30% { transform: translateY(-22%) rotate(200deg) scale(.92); }
+  65% { transform: translateY(4%) rotate(330deg) scale(1.04); }
+  82% { transform: translateY(-5%) rotate(352deg); }
+  100% { transform: translateY(0) rotate(360deg); }
+}
+
+.doodle-sun-rays { transform-box: fill-box; transform-origin: center; animation: doodle-spin 60s linear infinite; }
+.doodle-wiggle { animation: doodle-spin 60s linear infinite, doodle-wiggle 400ms ease-in-out 3; }
+@keyframes doodle-spin { to { transform: rotate(360deg); } }
+@keyframes doodle-wiggle { 50% { scale: 1.12; } }
+
+.doodle-zzz { animation: doodle-float 3s ease-in-out infinite; }
+@keyframes doodle-float { 50% { transform: translateY(-4px); opacity: .6; } }
+
+.doodle-sway { transform-box: fill-box; transform-origin: 50% 0; animation: doodle-sway 4s ease-in-out infinite alternate; }
+@keyframes doodle-sway { from { rotate: -4deg; } to { rotate: 4deg; } }
+
+@keyframes doodle-flutter-kf { 50% { scale: 1 0.7; } }
+.doodle-flutter { transform-box: fill-box; transform-origin: center; animation: doodle-flutter-kf 900ms ease-in-out infinite; }
+.doodle-wave { transform-box: fill-box; transform-origin: 0 50%; animation: doodle-wave-kf 1.6s ease-in-out infinite alternate; }
+@keyframes doodle-wave-kf { from { transform: skewY(-4deg); } to { transform: skewY(5deg) scaleX(0.92); } }
+
+/* the die's run down the tower; positions are the tower's local units (see DiceTower.tsx) */
+.tower-drop { animation: tower-drop 1350ms linear forwards; }
+@keyframes tower-drop {
+  0% { transform: translate(0px, -230px) rotate(0deg); animation-timing-function: cubic-bezier(.5,0,1,1); }
+  12% { transform: translate(-4px, -132px) rotate(50deg); animation-timing-function: cubic-bezier(.4,0,1,1); }
+  20% { transform: translate(-30px, -76px) rotate(120deg); animation-timing-function: ease-out; }
+  29% { transform: translate(18px, -58px) rotate(230deg); animation-timing-function: cubic-bezier(.5,0,1,1); }
+  36% { transform: translate(40px, -40px) rotate(270deg); }
+  43% { transform: translate(30px, -18px) rotate(330deg); animation-timing-function: ease-out; }
+  50% { transform: translate(-18px, -1px) rotate(430deg); animation-timing-function: cubic-bezier(.5,0,1,1); }
+  57% { transform: translate(-40px, 24px) rotate(470deg); }
+  64% { transform: translate(-30px, 33px) rotate(530deg); animation-timing-function: ease-out; }
+  73% { transform: translate(20px, 52px) rotate(630deg); animation-timing-function: cubic-bezier(.5,0,1,1); }
+  82% { transform: translate(78px, 112px) rotate(700deg); animation-timing-function: ease-out; }
+  86% { transform: translate(110px, 98px) rotate(714deg); animation-timing-function: ease-in; }
+  90% { transform: translate(128px, 112px) rotate(724deg); animation-timing-function: ease-out; }
+  94% { transform: translate(136px, 108px) rotate(722deg); }
+  100% { transform: translate(140px, 112px) rotate(720deg); }
+}
+
+/* pop-up book: the board rises off the desk from its bottom edge, then pieces spring up */
+/* 2D on purpose: browsers flatten 3D transforms on SVG elements, so the "rise" is a stretch up
+   from the hinge (the sheet's bottom edge, set inline as transform-origin) with a little overshoot */
+.board-unfold { transform-box: view-box; animation: board-unfold 900ms cubic-bezier(.25,1.45,.5,1) backwards; }
+@keyframes board-unfold {
+  from { transform: scale(0.96, 0.04); opacity: 0.25; }
+  35% { opacity: 1; }
+  to { transform: none; opacity: 1; }
+}
+.pop-up { transform-box: fill-box; transform-origin: 50% 100%; animation: pop-up 620ms cubic-bezier(.3,1.7,.5,1) backwards; }
+@keyframes pop-up {
+  from { transform: scale(0.15, 0.05); opacity: 0; }
+  40% { opacity: 1; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-unfold, .pop-up { animation: none; }
+  .tower-drop { animation: none; transform: translate(140px, 112px); }
+  .doodle-flutter, .doodle-wave { animation: none; }
+  .doodle-draw { animation: none; stroke-dashoffset: 0; }
+  .doodle-blink, .doodle-pop-in, .doodle-pip, .doodle-tumble, .doodle-sun-rays, .doodle-wiggle,
+  .doodle-zzz, .doodle-sway { animation: none; }
+}

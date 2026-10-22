@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "spiral-notebook",
+  "name": "Spiral Notebook",
+  "author": "inbuilt",
+  "grid": {
+    "rows": 8,
+    "cols": 8,
+    "layout": "spiral",
+    "origin": "bottom-left"
+  },
+  "snakes": [
+    {
+      "from": 63,
+      "to": 42,
+      "style": 0
+    },
+    {
+      "from": 57,
+      "to": 36,
+      "style": 1
+    },
+    {
+      "from": 52,
+      "to": 33,
+      "style": 2
+    },
+    {
+      "from": 44,
+      "to": 26,
+      "style": 3
+    },
+    {
+      "from": 35,
+      "to": 13,
+      "style": 4
+    },
+    {
+      "from": 24,
+      "to": 7,
+      "style": 5
+    }
+  ],
+  "ladders": [
+    {
+      "from": 4,
+      "to": 18
+    },
+    {
+      "from": 9,
+      "to": 27
+    },
+    {
+      "from": 21,
+      "to": 38
+    },
+    {
+      "from": 30,
+      "to": 45
+    },
+    {
+      "from": 41,
+      "to": 55
+    },
+    {
+      "from": 48,
+      "to": 60
+    }
+  ],
+  "theme": {
+    "paper": "ruled"
+  },
+  "source": {
+    "kind": "inbuilt"
+  },
+  "decorations": [
+    {
+      "square": 12,
+      "doodle": "star"
+    },
+    {
+      "square": 29,
+      "doodle": "heart"
+    },
+    {
+      "square": 50,
+      "doodle": "sparkle"
+    },
+    {
+      "square": 61,
+      "doodle": "flower"
+    }
+  ]
+}

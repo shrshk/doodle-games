@@ -1,0 +1,23 @@
+{
+  "name": "@snakes-doodle/engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "balance": "vitest run test/boards.test.ts"
+  },
+  "dependencies": {
+    "@snakes-doodle/boards": "workspace:*"
+  },
+  "devDependencies": {
+    "fast-check": "3.23.2",
+    "typescript": "5.6.3",
+    "vitest": "2.1.9"
+  }
+}

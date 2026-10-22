@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "id": "classic-100",
+  "name": "Classic 100",
+  "author": "inbuilt",
+  "grid": {
+    "rows": 10,
+    "cols": 10,
+    "layout": "boustrophedon",
+    "origin": "bottom-left"
+  },
+  "snakes": [
+    {
+      "from": 17,
+      "to": 7,
+      "style": 0
+    },
+    {
+      "from": 54,
+      "to": 34,
+      "style": 1
+    },
+    {
+      "from": 62,
+      "to": 19,
+      "style": 2
+    },
+    {
+      "from": 64,
+      "to": 60,
+      "style": 3
+    },
+    {
+      "from": 87,
+      "to": 24,
+      "style": 4
+    },
+    {
+      "from": 93,
+      "to": 73,
+      "style": 5
+    },
+    {
+      "from": 95,
+      "to": 75,
+      "style": 6
+    },
+    {
+      "from": 98,
+      "to": 79,
+      "style": 7
+    }
+  ],
+  "ladders": [
+    {
+      "from": 4,
+      "to": 14
+    },
+    {
+      "from": 9,
+      "to": 31
+    },
+    {
+      "from": 21,
+      "to": 42
+    },
+    {
+      "from": 28,
+      "to": 84
+    },
+    {
+      "from": 36,
+      "to": 44
+    },
+    {
+      "from": 51,
+      "to": 67
+    },
+    {
+      "from": 71,
+      "to": 91
+    },
+    {
+      "from": 80,
+      "to": 99
+    }
+  ],
+  "theme": {
+    "paper": "blank"
+  },
+  "source": {
+    "kind": "inbuilt"
+  },
+  "decorations": [
+    {
+      "square": 3,
+      "doodle": "flower"
+    },
+    {
+      "square": 12,
+      "doodle": "ladybug"
+    },
+    {
+      "square": 26,
+      "doodle": "snail"
+    },
+    {
+      "square": 33,
+      "doodle": "sparkle"
+    },
+    {
+      "square": 39,
+      "doodle": "mushroom"
+    },
+    {
+      "square": 45,
+      "doodle": "coffee-stain"
+    },
+    {
+      "square": 48,
+      "doodle": "flower-blue"
+    },
+    {
+      "square": 57,
+      "doodle": "heart"
+    },
+    {
+      "square": 59,
+      "doodle": "grass"
+    },
+    {
+      "square": 69,
+      "doodle": "butterfly"
+    },
+    {
+      "square": 72,
+      "doodle": "sparkle"
+    },
+    {
+      "square": 77,
+      "doodle": "mushroom"
+    },
+    {
+      "square": 83,
+      "doodle": "grass"
+    },
+    {
+      "square": 89,
+      "doodle": "heart"
+    },
+    {
+      "square": 96,
+      "doodle": "flower"
+    },
+    {
+      "square": 66,
+      "doodle": "dandelion"
+    },
+    {
+      "square": 5,
+      "doodle": "star"
+    },
+    {
+      "square": 42,
+      "doodle": "heart"
+    }
+  ]
+}
