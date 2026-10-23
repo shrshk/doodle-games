@@ -113,6 +113,7 @@ export function HomeScreen() {
       >
         or play with friends online →
       </button>
+      <p className="build-id">build {__BUILD_ID__}</p>
     </main>
   );
 }

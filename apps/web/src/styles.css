@@ -569,3 +569,5 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .reaction-picker, .seat-bubble { animation: none; }
 }
+
+.build-id { margin-top: auto; padding-top: 24px; font-size: 13px; color: #b3a898; font-family: var(--font-hand); }

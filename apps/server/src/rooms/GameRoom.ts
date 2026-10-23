@@ -36,6 +36,11 @@ const ROLL_COOLDOWN_MS = 300;
 const AWAY_ROLL_MS = 1500;
 const SPECTATOR_SLOTS = 8;
 
+/** One JSON line per room event, so a host machine's log shows who joined, dropped and came back. */
+function log(event: string, fields: Record<string, unknown>) {
+  console.log(JSON.stringify({ t: new Date().toISOString(), event, ...fields }));
+}
+
 /** Any thrown error in onCreate fails the create call; the client sees this message. */
 export class RoomOptionsError extends Error {}
 
@@ -144,6 +149,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     });
     // nobody may join until the creator has; an unclaimed room closes like an empty one
     this.armEmptyTimer();
+    log("room_created", { room: this.roomId, board: this.board.id });
   }
 
   /** A short code that doubles as the room id, unique across the whole server (presence set). */
@@ -164,6 +170,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     if (this.state.phase !== "lobby" || free.length === 0) {
       this.spectatorIds.add(client.sessionId);
       this.state.spectators = this.spectatorIds.size;
+      log("spectator_joined", { room: this.roomId, session: client.sessionId });
       return;
     }
     const seat = isSeat(options.seat) && free.includes(options.seat) ? options.seat : free[0]!;
@@ -172,9 +179,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.state.players.set(client.sessionId, player);
     this.syncTurnOrder();
     if (!this.state.hostId) this.state.hostId = client.sessionId;
+    log("player_joined", { room: this.roomId, session: client.sessionId, seat, players: this.state.turnOrder.length });
   }
 
-  override onDrop(client: Client) {
+  override onDrop(client: Client, code?: number) {
+    log("player_dropped", { room: this.roomId, session: client.sessionId, code });
     const player = this.state.players.get(client.sessionId);
     if (player) {
       player.connected = false;
@@ -186,6 +195,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   override onReconnect(client: Client) {
+    log("player_reconnected", { room: this.roomId, session: client.sessionId });
     this.clearEmptyTimer();
     const player = this.state.players.get(client.sessionId);
     if (!player) return;
@@ -193,8 +203,9 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     if (this.isCurrent(client.sessionId)) this.scheduleTurn();
   }
 
-  override onLeave(client: Client) {
+  override onLeave(client: Client, code?: number) {
     const id = client.sessionId;
+    log("player_left", { room: this.roomId, session: id, code });
     this.lastRollAt.delete(id);
     this.lastReactionAt.delete(id);
     if (this.spectatorIds.delete(id)) this.state.spectators = this.spectatorIds.size;
@@ -214,6 +225,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   override async onDispose() {
+    log("room_closed", { room: this.roomId });
     this.turnTimer?.clear();
     this.clearEmptyTimer();
     await this.presence.srem(CODES_KEY, this.roomId);
@@ -298,6 +310,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.rollOpensAt = Date.now() + introMs;
     this.state.turnDeadline = this.rollOpensAt + this.state.turnSeconds * secondMs;
     this.broadcast("started", { game: publicGame(this.game), seq: this.seq, rollInMs: introMs } satisfies StartedMessage);
+    log("game_started", { room: this.roomId, players: players.length });
     this.scheduleTurn();
   }
 
