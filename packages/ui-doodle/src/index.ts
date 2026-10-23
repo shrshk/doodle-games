@@ -1,6 +1,7 @@
 export { palette, tokenInk, characterName, TOKEN_COLORS, type TokenColor } from "./palette";
 export { PencilDefs, Crayon } from "./PencilDefs";
 export { Face, type Mood } from "./Face";
+export { startBlinking } from "./blink";
 export { Mushroom, Bee, Owl, Blob, EGG_PATH, type CharacterProps } from "./characters/Characters";
 export { Token, type TokenStage } from "./characters/Token";
 export { Dice } from "./Dice";

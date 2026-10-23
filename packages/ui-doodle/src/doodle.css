@@ -10,8 +10,10 @@
 }
 @keyframes doodle-draw { to { stroke-dashoffset: 0; } }
 
-.doodle-blink { transform-box: fill-box; transform-origin: center; animation: doodle-blink 5.5s infinite; }
-@keyframes doodle-blink { 0%, 95%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+/* one blink at a time, triggered by startBlinking() (blink.ts), never a looping animation */
+.doodle-blink { transform-box: fill-box; transform-origin: center; }
+.doodle-blink.blinking { animation: doodle-blink 180ms ease-in-out; }
+@keyframes doodle-blink { 0%, 100% { transform: scaleY(1); } 45% { transform: scaleY(0.1); } }
 
 .doodle-pop-in { transform-box: fill-box; transform-origin: 50% 100%; animation: doodle-pop-in 260ms ease-out; }
 @keyframes doodle-pop-in { from { transform: scale(0.85, 0.7); } 60% { transform: scale(1.06, 1.05); } to { transform: none; } }

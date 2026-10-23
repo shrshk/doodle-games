@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { palette, Speaker, ThemeIcon, tokenInk, type TokenColor, type TokenStage } from "@snakes-doodle/ui-doodle";
-import { BoardView } from "../board/BoardView";
+import { BoardMarks, BoardView } from "../board/BoardView";
 import { cellCenter, makeGeom, startSpot } from "../board/geometry";
 import { MealLayer } from "../board/Snake";
 import { layoutFor } from "../board/layout";
@@ -164,7 +164,13 @@ export function GameScreen() {
   const vb = `0 0 ${layout.width} ${layout.height}`;
   return (
     <main className="game-screen">
-      <div className={`sheet-wrap ${s.theme === "night" ? "night" : ""}`}>
+      <div className={`sheet-wrap ${s.theme === "night" ? "night" : ""} ${s.busy ? "busy" : ""}`}>
+      {/*
+        Two stacked sheets with the same viewBox. The still one holds the board and margins and only
+        changes when something happens (a ladder, a snake, a new turn); the moving one holds whatever
+        animates every frame (tokens, trail, swallow, dice tower, notes). Phones draw SVG filters on
+        the CPU, and in one shared SVG every hop repainted and re-filtered the whole crayon board.
+      */}
       <svg className="sheet" viewBox={vb} preserveAspectRatio="xMidYMid meet" role="img" aria-label={`${board.name} board`}>
         <Margins layout={layout} sunGrin={s.sunGrin} potatoesAwake={s.potatoesAwake} />
         <BoardView
@@ -173,49 +179,12 @@ export function GameScreen() {
           board={board}
           intro={intro}
           animateIntro={animateIntro}
-          hovered={hovered}
           onHover={setHovered}
-          destination={s.destination}
-          trail={s.trail}
           activeSnake={s.activeSnake}
           startLabelLeft={layout.startLabelLeft}
         />
-        <TokenLayer
-          geom={geom}
-          grid={board.grid}
-          players={game.players}
-          display={s.display}
-          moving={s.moving}
-          moods={s.moods}
-          stage={TOKEN_STAGE[intro] ?? "full"}
-          currentId={game.turn.playerId}
-          showScribble={introDone && game.turn.phase === "awaitingRoll" && !s.busy}
-          turnKey={`${game.turn.playerId}-${s.turnNo}`}
-          waking={s.handoff}
-        />
-        {/* above the tokens, so the open mouth covers the token being swallowed */}
-        {s.meal && <MealLayer geom={geom} snakes={art.snakes} meal={s.meal} />}
-        {Object.entries(s.reactions).map(([id, r]) => {
-          const at = tokenAt(id);
-          // just above the token's head (tokens are drawn about one cell tall)
-          return <SheetBubble key={r.key} x={at.x} y={at.y - geom.unit * 0.45} reaction={r.reaction} sheetWidth={layout.width} reduced={reducedMotion} />;
-        })}
         <Roster layout={layout} game={game} tags={tags} />
-        <DiceButton
-          layout={layout}
-          value={s.dice.value}
-          rolling={s.dice.rolling}
-          rollId={s.dice.rollId}
-          reduced={reducedMotion}
-          enabled={humanCanRoll}
-          label={label}
-          color={tokenInk[current.color as TokenColor]}
-          onRoll={s.roll}
-        />
         <Caption layout={layout} text={s.caption} />
-        <Notes layout={layout} notes={s.notes} />
-        {intro >= 0 && intro < 6 && !reducedMotion && <TitleCard layout={layout} text={board.name.toLowerCase()} />}
-        {s.bigMoment && <TitleCard layout={layout} text={s.bigMoment} />}
         {online && (
           <SheetReactionButton x={layout.react.x} y={layout.react.y} s={layout.react.s} open={!!reactAnchor} onOpen={setReactAnchor} />
         )}
@@ -259,6 +228,43 @@ export function GameScreen() {
             {online ? "← leave" : "← home"}
           </text>
         </g>
+      </svg>
+      <svg className="sheet sheet-moving" viewBox={vb} preserveAspectRatio="xMidYMid meet">
+        <BoardMarks geom={geom} grid={board.grid} hovered={hovered} destination={s.destination} trail={s.trail} />
+        <TokenLayer
+          geom={geom}
+          grid={board.grid}
+          players={game.players}
+          display={s.display}
+          moving={s.moving}
+          moods={s.moods}
+          stage={TOKEN_STAGE[intro] ?? "full"}
+          currentId={game.turn.playerId}
+          showScribble={introDone && game.turn.phase === "awaitingRoll" && !s.busy}
+          turnKey={`${game.turn.playerId}-${s.turnNo}`}
+          waking={s.handoff}
+        />
+        {/* above the tokens, so the open mouth covers the token being swallowed */}
+        {s.meal && <MealLayer geom={geom} snakes={art.snakes} meal={s.meal} />}
+        {Object.entries(s.reactions).map(([id, r]) => {
+          const at = tokenAt(id);
+          // just above the token's head (tokens are drawn about one cell tall)
+          return <SheetBubble key={r.key} x={at.x} y={at.y - geom.unit * 0.45} reaction={r.reaction} sheetWidth={layout.width} reduced={reducedMotion} />;
+        })}
+        <DiceButton
+          layout={layout}
+          value={s.dice.value}
+          rolling={s.dice.rolling}
+          rollId={s.dice.rollId}
+          reduced={reducedMotion}
+          enabled={humanCanRoll}
+          label={label}
+          color={tokenInk[current.color as TokenColor]}
+          onRoll={s.roll}
+        />
+        <Notes layout={layout} notes={s.notes} />
+        {intro >= 0 && intro < 6 && !reducedMotion && <TitleCard layout={layout} text={board.name.toLowerCase()} />}
+        {s.bigMoment && <TitleCard layout={layout} text={s.bigMoment} />}
       </svg>
       <LightLayer targets={lightTargets} sheet={{ width: layout.width, height: layout.height }} reduced={reducedMotion} />
       </div>

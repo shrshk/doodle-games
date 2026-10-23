@@ -68,6 +68,13 @@ body {
 
 .sheet-wrap { position: relative; width: 100%; height: 100%; }
 .sheet { width: 100%; height: 100%; display: block; user-select: none; touch-action: manipulation; }
+/* the moving layer: its own compositor layer, see GameScreen; taps fall through to the board below */
+.sheet-moving { position: absolute; inset: 0; pointer-events: none; will-change: transform; }
+.sheet-moving .dice-button { pointer-events: auto; }
+/* While a turn plays, the margin and board decorations hold still: every frame they move, WebKit
+   repaints filtered art around them, and that cost the hop its frame rate on iPhones (29 -> 10 ms
+   per frame with them held). Nobody watches the bunting while a token is moving. */
+.sheet-wrap.busy :is(.doodle-sway, .doodle-flutter, .doodle-sun-rays, .doodle-zzz, .doodle-wave) { animation-play-state: paused; }
 /* the light layer sits exactly over the sheet and never takes a tap */
 .light-layer, .light-fallback { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .light-fallback {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PencilDefs } from "@snakes-doodle/ui-doodle";
+import { PencilDefs, startBlinking } from "@snakes-doodle/ui-doodle";
 import { GameScreen } from "./game/GameScreen";
 import { HomeScreen } from "./game/HomeScreen";
 import { OnlineScreen } from "./game/OnlineScreen";
@@ -13,6 +13,7 @@ export function App() {
   const gameNo = useGame((s) => s.gameNo);
   const reduced = usePrefersReducedMotion();
   useEffect(() => useGame.getState().setReducedMotion(reduced), [reduced]);
+  useEffect(() => (reduced ? undefined : startBlinking()), [reduced]);
 
   // a /join/ABC123 link opens the online page with that code; otherwise a refresh rejoins the
   // room this tab was in. The address goes back to "/" so a later refresh does not join twice.

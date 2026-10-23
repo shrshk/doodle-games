@@ -60,6 +60,13 @@ something, it lives in `apps/web` or `packages/ui-doodle`.
 - Colours come from `palette` in `ui-doodle`; ink is dark brown `#3B2F2A`, never pure black.
 - Every animation must respect `prefers-reduced-motion` (CSS media query plus `reducedMotion` in
   the store, which skips tweens and the intro).
+- Phones (WebKit) re-run SVG filters on whatever repaints, so a looping CSS animation near the
+  crayon art costs every frame. Measured in Playwright WebKit (iPhone 13), a hop went 29 -> 10 ms per
+  frame after: eyes blink one face at a time from `startBlinking()` (ui-doodle `blink.ts`), never a
+  looping animation; ambient loops (`doodle-sway`, `-flutter`, `-sun-rays`, `-zzz`, `-wave`) pause
+  while `busy` (`.sheet-wrap.busy` in `styles.css`). New looping decorations join that list.
+  The sheet is two stacked SVGs: the still board (memoized `BoardView`) and `.sheet-moving` for
+  tokens, trail, swallow, dice and notes. Anything that changes every frame goes in the moving one.
 - Pacing: every animation timing lives in `PACE` in `apps/web/src/store.ts`. Tune there, not inline.
 - Snakes: `board/snakeKinds.ts` maps a board snake's `style` to a kind (colour, pattern, head shape,
   accessory, tail, thickness). `board/Snake.tsx` draws bodies, heads and the swallow (`MealLayer`,

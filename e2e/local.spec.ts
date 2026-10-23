@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 test("two bots play a local game to the end", async ({ page }) => {
+  // bot games are random in length: most take under a minute, a long one has taken over two
+  test.setTimeout(330_000);
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -9,5 +11,5 @@ test("two bots play a local game to the end", async ({ page }) => {
   await page.getByRole("button", { name: /^Board:/ }).click();
   await page.getByRole("button", { name: /quick doodle/ }).click();
   await page.getByRole("button", { name: "play!" }).click();
-  await expect(page.getByRole("dialog", { name: /wins!/ })).toBeVisible({ timeout: 150_000 });
+  await expect(page.getByRole("dialog", { name: /wins!/ })).toBeVisible({ timeout: 300_000 });
 });

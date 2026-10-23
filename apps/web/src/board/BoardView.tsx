@@ -461,16 +461,18 @@ export interface BoardViewProps {
   board: Board;
   intro: IntroStage;
   animateIntro: boolean;
-  hovered: number | null;
   onHover(square: number | null): void;
-  destination: number | null;
-  trail: FlatPt[];
   activeSnake: number | null;
   startLabelLeft: boolean;
 }
 
-export function BoardView(props: BoardViewProps) {
-  const { geom, art, board, intro, animateIntro, hovered, onHover, destination, trail, activeSnake, startLabelLeft } = props;
+/**
+ * The board itself: paper, hatching, grid, numbers, snakes and ladders. It only changes on intro
+ * stages and when a snake opens its mouth, so it is memoized and drawn in the still layer; anything
+ * that moves every frame goes in BoardMarks instead (see GameScreen).
+ */
+export const BoardView = memo(function BoardView(props: BoardViewProps) {
+  const { geom, art, board, intro, animateIntro, onHover, activeSnake, startLabelLeft } = props;
   const grid = board.grid;
   const cells = useMemo(() => {
     const out: { square: number; d: string }[] = [];
@@ -508,14 +510,20 @@ export function BoardView(props: BoardViewProps) {
       {intro >= 2 && <PieceLayer geom={geom} art={art} animate={animateIntro} activeSnake={activeSnake} />}
       {/* above the snakes and ladders so the words stay readable */}
       {intro >= 2 && <LabelLayer geom={geom} board={board} />}
-      <g pointerEvents="none">
-        {hovered !== null && <Brackets geom={geom} grid={grid} square={hovered} />}
-        {destination !== null && destination > 0 && <LeafCircle geom={geom} grid={grid} square={destination} />}
-        {trail.map((t, i) => {
-          const p = geom.toScreen(t);
-          return <circle key={i} cx={p.x} cy={p.y} r={geom.unit * 0.032} fill={palette.crayonRed} opacity={0.85} />;
-        })}
-      </g>
+    </g>
+  );
+});
+
+/** What changes on the board while a token moves: the hop trail, the destination ring, the hovered square. */
+export function BoardMarks({ geom, grid, hovered, destination, trail }: { geom: BoardGeom; grid: Grid; hovered: number | null; destination: number | null; trail: FlatPt[] }) {
+  return (
+    <g pointerEvents="none">
+      {hovered !== null && <Brackets geom={geom} grid={grid} square={hovered} />}
+      {destination !== null && destination > 0 && <LeafCircle geom={geom} grid={grid} square={destination} />}
+      {trail.map((t, i) => {
+        const p = geom.toScreen(t);
+        return <circle key={i} cx={p.x} cy={p.y} r={geom.unit * 0.032} fill={palette.crayonRed} opacity={0.85} />;
+      })}
     </g>
   );
 }
