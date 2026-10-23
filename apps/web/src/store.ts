@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { CloseCode } from "@colyseus/sdk";
 import type { Board } from "@snakes-doodle/boards";
 import { createGame, reduce, trackFromBoard, type GameEvent, type GameState, type PlayerState, type RuleSet } from "@snakes-doodle/engine";
 import { PACE, type PublicGame, type Reaction, type ReactionMessage, type RoomView, type StartedMessage, type TurnMessage } from "@snakes-doodle/protocol";
@@ -189,6 +190,14 @@ let turnQueue: { msg: TurnMessage; at: number }[] = [];
 let draining = false;
 let lastSeq = 0;
 let resuming: Promise<boolean> | null = null;
+/** after a reconnect, rebuild the board from the room state: turns may have happened meanwhile */
+let resyncPending = false;
+/** removes the wake-up listeners of the current room */
+let stopWakeCheck: () => void = () => undefined;
+/** counts reconnects, so a wake-up ping sent on a socket that has since been replaced is ignored */
+let reconnects = 0;
+/** a ping that gets no answer this fast means the socket died while the app was in the background */
+const WAKE_PING_MS = 1500;
 
 /** Bumped whenever a game starts or ends, so in-flight animations from the old game stop. */
 let generation = 0;
@@ -610,6 +619,7 @@ export const useGame = create<Store>((set, get) => {
       generation++;
       const r = room;
       room = null;
+      stopWakeCheck();
       turnQueue = [];
       forgetRoom();
       void r?.leave(true).catch(() => undefined);
@@ -672,6 +682,8 @@ export const useGame = create<Store>((set, get) => {
     turnQueue = [];
     lastSeq = 0;
     rememberRoom(r);
+    watchForWake(r);
+    if (import.meta.env.DEV) (window as unknown as { __room: GameRoom }).__room = r;
     patchOnline({ status: "in-room", me: r.sessionId, error: "" });
     r.onStateChange((state) => {
       if (room !== r) return;
@@ -703,21 +715,77 @@ export const useGame = create<Store>((set, get) => {
     r.onReconnect(() => {
       if (room !== r) return;
       rememberRoom(r);
+      reconnects++;
+      resyncPending = true;
       patchOnline({ status: "in-room" });
     });
     r.onLeave(() => {
       if (room !== r) return;
       // the server closed the room, or the seat's reconnection window ran out
       room = null;
+      stopWakeCheck();
       forgetRoom();
       generation++;
       set({ ...freshView(), screen: "online", game: null, online: { ...freshOnline(), error: "the room closed" } });
     });
   }
 
+  /**
+   * iOS freezes a backgrounded PWA (the share sheet is enough) and its socket can die without a
+   * close event, so on return the page would sit on a stale room until a timeout minutes later.
+   * When the app comes back, or the network does, ping the room; no answer means the socket is
+   * dead, and closing it with MAY_TRY_RECONNECT starts the SDK's own reconnect into the same seat.
+   */
+  function watchForWake(r: GameRoom) {
+    stopWakeCheck();
+    const check = () => {
+      if (document.visibilityState !== "visible" || room !== r || !r.connection.isOpen) return;
+      let answered = false;
+      const sentAt = reconnects;
+      r.ping(() => (answered = true));
+      setTimeout(() => {
+        // the SDK may have noticed and reconnected by itself meanwhile: leave the new socket alone
+        if (answered || room !== r || !r.connection.isOpen || reconnects !== sentAt) return;
+        console.warn("room_wake_ping_unanswered");
+        patchOnline({ status: "reconnecting" });
+        r.connection.close(CloseCode.MAY_TRY_RECONNECT);
+      }, WAKE_PING_MS);
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("pageshow", check);
+    window.addEventListener("online", check);
+    stopWakeCheck = () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("pageshow", check);
+      window.removeEventListener("online", check);
+    };
+  }
+
+  /** Back from a reconnect mid-game: put every token where the room says, drop half-played turns. */
+  function resync(view: RoomView) {
+    const board = get().board;
+    const game = gameFromView(view, board);
+    generation++;
+    turnQueue = [];
+    const deadline = view.turnDeadline ? Date.now() + Math.max(0, view.turnDeadline - Date.now()) : 0;
+    set((st) => ({
+      ...freshView(),
+      game,
+      display: positionsOf(game),
+      dice: st.dice,
+      introDone: true,
+      showWin: view.phase === "finished",
+      online: st.online ? { ...st.online, rollOpensAt: Date.now(), deadline, rollSent: false } : st.online,
+    }));
+  }
+
   /** Follow the room between its lobby and the board. */
   function route(view: RoomView) {
     const s = get();
+    if (resyncPending) {
+      resyncPending = false;
+      if (view.phase !== "lobby" && s.game) return resync(view);
+    }
     if (view.phase === "lobby" && s.screen !== "online") {
       generation++;
       set({ ...freshView(), screen: "online", game: null });

@@ -70,6 +70,14 @@ describe("GameRoom", () => {
     expect(JSON.parse(v.boardJson).id).toBe("classic-100");
   });
 
+  it("gives a newcomer their character's name when the name they asked for is taken", async () => {
+    const host = await create({ name: "Mush" });
+    const friend = await colyseus.sdk.joinById(host.roomId, { name: "mush" });
+    await friend.waitForInitialState();
+    await until(() => Object.keys(view(host).players).length === 2);
+    expect(view(host).players[friend.sessionId]).toMatchObject({ color: "yellow", name: "Bee" });
+  });
+
   it("only lets the host add bots and start, and needs two players", async () => {
     const host = await create({ name: "Ana" });
     host.send("start");

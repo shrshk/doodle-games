@@ -113,6 +113,14 @@ something, it lives in `apps/web` or `packages/ui-doodle`.
   (`react` -> `reaction` broadcast, one per player per `REACTION_COOLDOWN_MS`), never stored. Free
   text is out on purpose, because anyone with a room code can join. The button sits at `layout.react`, a free
   spot in each sheet; the picker is HTML placed next to it (`game/Reactions.tsx`).
+- iOS freezes a backgrounded PWA (opening the share sheet is enough) and its socket can die with no
+  close event, leaving a stale screen. `watchForWake` in `store.ts` pings the room on
+  `visibilitychange` / `pageshow` / `online`; no pong in 1.5 s closes the socket with
+  `CloseCode.MAY_TRY_RECONNECT`, which starts the SDK's own reconnect into the same seat. After any
+  reconnect, `resync` rebuilds the board from the room state (turns played meanwhile are not
+  replayed). Dev builds expose the room as `window.__room` to simulate a dead socket.
+- A newcomer whose name is taken gets their seat's character name (`uniqueName` in `GameRoom`):
+  every device defaults to its own first slot's name, so two friends would both be "Mush".
 - Startup resume runs once at a time (`resuming` in `store.ts`): a second reconnect with the same
   token fails and would forget the room (StrictMode runs effects twice in dev).
 - Room codes are the Colyseus room id (6 characters, no I/O/0/1), claimed through presence.

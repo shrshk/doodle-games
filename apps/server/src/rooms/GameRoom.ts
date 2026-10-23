@@ -168,7 +168,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     }
     const seat = isSeat(options.seat) && free.includes(options.seat) ? options.seat : free[0]!;
     const player = new PlayerState();
-    Object.assign(player, { id: client.sessionId, name: cleanName(options.name, BOT_NAMES[seat]), color: seat });
+    Object.assign(player, { id: client.sessionId, name: this.uniqueName(cleanName(options.name, BOT_NAMES[seat]), seat), color: seat });
     this.state.players.set(client.sessionId, player);
     this.syncTurnOrder();
     if (!this.state.hostId) this.state.hostId = client.sessionId;
@@ -226,6 +226,18 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   private freeSeats(): Seat[] {
     const taken = new Set<string>([...this.state.players.values()].map((p: PlayerState) => p.color));
     return SEATS.filter((s) => !taken.has(s));
+  }
+
+  /**
+   * Every device defaults to its own first character's name, so two friends who never typed one
+   * would both be "Mush". A newcomer whose name is taken gets their seat's character name instead.
+   */
+  private uniqueName(name: string, seat: Seat): string {
+    const taken = new Set([...this.state.players.values()].map((p: PlayerState) => p.name.toLowerCase()));
+    if (!taken.has(name.toLowerCase())) return name;
+    const base = BOT_NAMES[seat];
+    if (!taken.has(base.toLowerCase())) return base;
+    for (let n = 2; ; n++) if (!taken.has(`${base} ${n}`.toLowerCase())) return `${base} ${n}`;
   }
 
   private syncTurnOrder() {
