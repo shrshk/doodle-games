@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { boot, type ColyseusTestServer } from "@colyseus/testing";
 import { classic100 } from "@snakes-doodle/boards";
-import { ROOM_NAME, isRoomCode, type RoomView, type TurnMessage } from "@snakes-doodle/protocol";
+import { ROOM_NAME, isRoomCode, type ReactionMessage, type RoomView, type TurnMessage } from "@snakes-doodle/protocol";
 import { createGameServer } from "../src/app";
 import { GameRoom, REAL_TIMING } from "../src/rooms/GameRoom";
 
@@ -163,6 +163,18 @@ describe("GameRoom", () => {
     await until(() => room.state.phase === "finished", 10000);
     const places = [...room.state.players.values()].map((p) => p.place);
     expect(places).toContain(1);
+  });
+
+  it("relays known reactions from seated players, at most one per cooldown", async () => {
+    const { host, friend } = await twoPlayerRoom();
+    const seen: ReactionMessage[] = [];
+    friend.onMessage("reaction", (m: ReactionMessage) => seen.push(m));
+    host.send("react", { reaction: "yay" });
+    host.send("react", { reaction: "gg" }); // too soon: dropped
+    host.send("react", { reaction: "you stink" }); // not on the list: dropped
+    await until(() => seen.length === 1);
+    await sleep(80);
+    expect(seen).toEqual([{ playerId: host.sessionId, reaction: "yay" }]);
   });
 
   it("closes a room once everyone has left and nobody comes back", async () => {

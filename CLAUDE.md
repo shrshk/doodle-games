@@ -102,6 +102,12 @@ something, it lives in `apps/web` or `packages/ui-doodle`.
 - Bots, absent players and the turn timer are rolled for by the server (`scheduleTurn`). A dropped
   client keeps its seat for 120 s (`allowReconnection`); a refresh rejoins through the token in
   `sessionStorage`. An empty room closes after 60 s.
+- Quick reactions, not chat: a fixed word list (`REACTIONS` in `protocol`), relayed by the server
+  (`react` -> `reaction` broadcast, one per player per `REACTION_COOLDOWN_MS`), never stored. Free
+  text is out on purpose, because anyone with a room code can join. The button sits at `layout.react`, a free
+  spot in each sheet; the picker is HTML placed next to it (`game/Reactions.tsx`).
+- Startup resume runs once at a time (`resuming` in `store.ts`): a second reconnect with the same
+  token fails and would forget the room (StrictMode runs effects twice in dev).
 - Room codes are the Colyseus room id (6 characters, no I/O/0/1), claimed through presence.
   `/join/CODE` opens the app on that room; the server answers any unknown path with `index.html`.
 - `GameRoom.timing` scales every wait; room tests run whole games in milliseconds, and
@@ -133,6 +139,7 @@ something, it lives in `apps/web` or `packages/ui-doodle`.
   (`properties.test.ts`). Pin die rolls with `seedFor([...values])` from `test/helpers.ts`.
 - Boards: `packages/boards/src/geometry.test.ts`.
 - Rooms: `apps/server/test/room.test.ts` with `@colyseus/testing` (join by code, host-only start,
-  out-of-turn roll, timer roll and skip, reconnect, a full game, custom boards, empty-room close).
+  out-of-turn roll, timer roll and skip, reconnect, a full game, custom boards, empty-room close,
+  reactions).
 - E2E: `e2e/*.spec.ts` (Playwright, reduced motion, server at `TIMING_SCALE=0.05`).
 - New dependencies need the owner's approval first (see the handoff's stack table).

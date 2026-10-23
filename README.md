@@ -21,7 +21,8 @@ pnpm e2e        # Playwright end-to-end tests
 **Online:** on the start page, "or play with friends online". One person starts a room and shares
 the six-letter code or the `/join/CODE` link; the host can fill empty seats with bots and starts the
 game. Turns have a 20 s timer (the server rolls if it runs out), and a dropped player has two
-minutes to come back to their seat. Run it with Docker: `docker build -t snakes-doodle . && docker
+minutes to come back to their seat. There is no free-text chat: the speech-bubble button sends a
+quick reaction ("nice!", "yay!", "oops!", "lucky!", "nooo", "gg") that pops up over your token. Run it with Docker: `docker build -t snakes-doodle . && docker
 run -p 2567:2567 snakes-doodle`. Hosting notes: [`docs/HOSTING.md`](docs/HOSTING.md).
 
 For online play while developing, run the game server beside `pnpm dev`:

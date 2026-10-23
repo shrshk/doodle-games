@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { palette, Speaker, ThemeIcon, tokenInk, type TokenColor, type TokenStage } from "@snakes-doodle/ui-doodle";
 import { BoardView } from "../board/BoardView";
 import { cellCenter, makeGeom, startSpot } from "../board/geometry";
@@ -8,6 +8,7 @@ import { sfx } from "../sound";
 import { canRollNow, PACE, useGame } from "../store";
 import { Caption, DiceButton, Notes, Roster, TitleCard } from "./Hud";
 import { LightLayer, type LightTargets } from "./LightLayer";
+import { ReactionPicker, SheetBubble, SheetReactionButton } from "./Reactions";
 import { Margins } from "./Margins";
 import { TokenLayer } from "./TokenLayer";
 import { useViewport } from "./useViewport";
@@ -34,6 +35,8 @@ export function GameScreen() {
   const geom = useMemo(() => makeGeom(board.grid, layout.quad, layout.ink), [board.grid, layout.quad, layout.ink]);
   const [intro, setIntro] = useState(reducedMotion ? 6 : 0);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [reactAnchor, setReactAnchor] = useState<DOMRect | null>(null);
+  const closeReactions = useCallback(() => setReactAnchor(null), []);
   const animateIntro = useRef(!reducedMotion).current;
 
   useEffect(() => {
@@ -89,18 +92,20 @@ export function GameScreen() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  /** Where a player's token is drawn right now, in sheet coordinates. */
+  const tokenAt = (id: string) => {
+    if (s.moving?.playerId === id) return geom.toScreen({ c: s.moving.at.c, r: s.moving.at.r });
+    const seat = game?.players.findIndex((p) => p.id === id) ?? 0;
+    const sq = s.display[id] ?? 0;
+    return geom.toScreen(sq > 0 ? cellCenter(board.grid, sq) : startSpot(board.grid, seat));
+  };
+
   // what the light layer should light, in sheet coordinates
   const lightTargets = useMemo<LightTargets>(() => {
     const quad = layout.quad;
     const cx = (quad[0].x + quad[1].x + quad[2].x + quad[3].x) / 4;
     const cy = (quad[0].y + quad[1].y + quad[2].y + quad[3].y) / 4;
     const span = Math.hypot(quad[2].x - quad[0].x, quad[2].y - quad[0].y);
-    const tokenAt = (id: string) => {
-      if (s.moving?.playerId === id) return geom.toScreen({ c: s.moving.at.c, r: s.moving.at.r });
-      const seat = game?.players.findIndex((p) => p.id === id) ?? 0;
-      const sq = s.display[id] ?? 0;
-      return geom.toScreen(sq > 0 ? cellCenter(board.grid, sq) : startSpot(board.grid, seat));
-    };
     const winner = s.showWin ? game?.players.find((p) => p.finishedPlace === 1) : undefined;
     const snake = s.activeSnake !== null ? art.snakes[s.activeSnake] : undefined;
     return {
@@ -190,6 +195,11 @@ export function GameScreen() {
         />
         {/* above the tokens, so the open mouth covers the token being swallowed */}
         {s.meal && <MealLayer geom={geom} snakes={art.snakes} meal={s.meal} />}
+        {Object.entries(s.reactions).map(([id, r]) => {
+          const at = tokenAt(id);
+          // just above the token's head (tokens are drawn about one cell tall)
+          return <SheetBubble key={r.key} x={at.x} y={at.y - geom.unit * 0.45} reaction={r.reaction} sheetWidth={layout.width} reduced={reducedMotion} />;
+        })}
         <Roster layout={layout} game={game} tags={tags} />
         <DiceButton
           layout={layout}
@@ -206,6 +216,9 @@ export function GameScreen() {
         <Notes layout={layout} notes={s.notes} />
         {intro >= 0 && intro < 6 && !reducedMotion && <TitleCard layout={layout} text={board.name.toLowerCase()} />}
         {s.bigMoment && <TitleCard layout={layout} text={s.bigMoment} />}
+        {online && (
+          <SheetReactionButton x={layout.react.x} y={layout.react.y} s={layout.react.s} open={!!reactAnchor} onOpen={setReactAnchor} />
+        )}
         <g
           role="button"
           tabIndex={0}
@@ -252,6 +265,7 @@ export function GameScreen() {
       <div className="sr-only" aria-live="polite" role="status">
         {s.announcement}
       </div>
+      {reactAnchor && !s.showWin && <ReactionPicker anchor={reactAnchor} onClose={closeReactions} />}
       {s.showWin && <WinOverlay />}
     </main>
   );

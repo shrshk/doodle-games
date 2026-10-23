@@ -30,10 +30,20 @@ test("two browsers make a room, join by code and link, and play it to the finish
   await expect(bo.locator(".room-code-letters")).toHaveText(code);
   await expect(ana.getByText("player", { exact: true })).toBeVisible();
 
+  // a quick reaction in the lobby pops up on the reacting player's seat for the other player
+  await bo.getByRole("button", { name: "Quick reactions" }).click();
+  await bo.getByRole("menuitem", { name: "yay!" }).click();
+  await expect(ana.locator(".seat-bubble")).toHaveText("yay!");
+
   // only the host has the start button
   await expect(bo.getByRole("button", { name: "start!" })).toHaveCount(0);
   await ana.getByRole("button", { name: "start!" }).click();
   await expect(bo.getByRole("img", { name: /board/ })).toBeVisible();
+
+  // a refresh mid-game puts Bo back in the same seat
+  await bo.reload();
+  await expect(bo.getByRole("img", { name: /board/ })).toBeVisible();
+  await expect(bo.locator("svg.sheet text", { hasText: "(you)" })).toHaveCount(1);
 
   let done = false;
   const winner = Promise.race([

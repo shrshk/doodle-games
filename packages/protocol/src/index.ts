@@ -67,9 +67,27 @@ export interface TurnMessage {
   deadlineInMs: number;
 }
 
+/**
+ * Quick reactions: a fixed set of words instead of free chat, so anyone holding a room code can
+ * cheer or groan but nobody can type anything unkind. The server relays them and stores nothing.
+ */
+export const REACTIONS = ["nice", "yay", "oops", "lucky", "noo", "gg"] as const;
+export type Reaction = (typeof REACTIONS)[number];
+export const isReaction = (r: unknown): r is Reaction => typeof r === "string" && (REACTIONS as readonly string[]).includes(r);
+export const REACTION_TEXT: Record<Reaction, string> = { nice: "nice!", yay: "yay!", oops: "oops!", lucky: "lucky!", noo: "nooo", gg: "gg" };
+/** one reaction per player per this many ms; extras are dropped */
+export const REACTION_COOLDOWN_MS = 1200;
+
+/** Server -> client: someone in the room reacted. */
+export interface ReactionMessage {
+  playerId: string;
+  reaction: Reaction;
+}
+
 /** Client -> server message types. */
 export type ClientMessage =
   | { type: "roll" }
+  | { type: "react"; reaction: Reaction }
   | { type: "seat"; seat: Seat }
   | { type: "name"; name: string }
   | { type: "addBot"; seat: Seat }

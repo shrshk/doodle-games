@@ -5,6 +5,7 @@ import { characterName, palette, Token, type TokenColor } from "@snakes-doodle/u
 import { joinLink } from "../net/online";
 import { sfx } from "../sound";
 import { useGame } from "../store";
+import { ReactionButton, SeatBubble } from "./Reactions";
 
 const TILT = [-1.5, 1.2, -0.8, 1.6];
 
@@ -106,7 +107,7 @@ function Doorway({ initialCode }: { initialCode: string }) {
 
 /** In a room, before the game: seats, bots, the code to share, and the host's start button. */
 function Lobby() {
-  const { online, sendOnline, leaveOnline } = useGame();
+  const { online, sendOnline, leaveOnline, reactions } = useGame();
   const view = online!.view!;
   const me = online!.me;
   const isHost = view.hostId === me;
@@ -154,6 +155,7 @@ function Lobby() {
           const kind = !p ? "empty" : p.isBot ? "bot" : isMe ? "you" : p.connected ? "player" : "away";
           return (
             <li key={seat} className={`slot ${p ? "human" : "off"} ${isMe ? "me" : ""}`} style={{ rotate: `${TILT[i]}deg` }}>
+              {p && reactions[p.id] && <SeatBubble key={reactions[p.id]!.key} reaction={reactions[p.id]!.reaction} />}
               <button
                 type="button"
                 className="slot-character"
@@ -223,6 +225,7 @@ function Lobby() {
       <button type="button" className="ink-link" onClick={leaveOnline}>
         ← leave the room
       </button>
+      <ReactionButton />
       <p className="sr-only" aria-live="polite">
         {`In the room: ${Object.values(view.players)
           .map((p) => `${p.name}${p.isBot ? " (bot)" : ""}`)

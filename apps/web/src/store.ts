@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Board } from "@snakes-doodle/boards";
 import { createGame, reduce, trackFromBoard, type GameEvent, type GameState, type PlayerState, type RuleSet } from "@snakes-doodle/engine";
-import { PACE, type PublicGame, type RoomView, type StartedMessage, type TurnMessage } from "@snakes-doodle/protocol";
+import { PACE, type PublicGame, type Reaction, type ReactionMessage, type RoomView, type StartedMessage, type TurnMessage } from "@snakes-doodle/protocol";
 import { characterName, TOWER_HITS, type Mood, type TokenColor } from "@snakes-doodle/ui-doodle";
 import { buildBoardArt, type BoardArt } from "./board/art";
 import type { Meal } from "./board/Snake";
@@ -64,6 +64,8 @@ interface ViewState {
   announcement: string;
   /** bumps after every finished turn (online states carry no log to count) */
   turnNo: number;
+  /** online quick reactions on show, by player; `key` restarts the pop when the same word repeats */
+  reactions: Record<string, { reaction: Reaction; key: number }>;
 }
 
 /** A room on the game server: the synced room state plus this tab's view of the turn clock. */
@@ -114,6 +116,7 @@ interface Store extends ViewState {
   resumeOnline(): Promise<boolean>;
   leaveOnline(): void;
   sendOnline(type: OnlineMessage, payload?: object): void;
+  react(reaction: Reaction): void;
 }
 
 /** Whether this tab may roll right now: local turns any human's, online only its own seat once the server opens the roll. */
@@ -146,6 +149,7 @@ const freshView = (): ViewState => ({
   showWin: false,
   announcement: "",
   turnNo: 0,
+  reactions: {},
 });
 
 const positionsOf = (g: GameState) => Object.fromEntries(g.players.map((p) => [p.id, p.position]));
@@ -184,10 +188,13 @@ let room: GameRoom | null = null;
 let turnQueue: { msg: TurnMessage; at: number }[] = [];
 let draining = false;
 let lastSeq = 0;
+let resuming: Promise<boolean> | null = null;
 
 /** Bumped whenever a game starts or ends, so in-flight animations from the old game stop. */
 let generation = 0;
 let noteId = 0;
+/** how long a reaction bubble stays up */
+const REACTION_SHOW_MS = 2600;
 
 export const useGame = create<Store>((set, get) => {
   const live = (gen: number) => gen === generation;
@@ -584,12 +591,19 @@ export const useGame = create<Store>((set, get) => {
       await connect(() => joinRoom(code, { name }));
     },
 
-    resumeOnline: async () => {
-      const r = await resumeRoom();
-      if (!r) return false;
-      set({ screen: "online", online: { ...freshOnline(), status: "in-room" } });
-      attach(r);
-      return true;
+    resumeOnline: () => {
+      // once at a time: a second try with the same token would fail and forget the room
+      // (React's dev StrictMode runs the startup effect twice)
+      if (room) return Promise.resolve(true);
+      resuming ??= resumeRoom()
+        .then((r) => {
+          if (!r) return false;
+          set({ screen: "online", online: { ...freshOnline(), status: "in-room" } });
+          attach(r);
+          return true;
+        })
+        .finally(() => (resuming = null));
+      return resuming;
     },
 
     leaveOnline: () => {
@@ -603,6 +617,8 @@ export const useGame = create<Store>((set, get) => {
     },
 
     sendOnline: (type, payload) => room?.send(type, payload ?? {}),
+
+    react: (reaction) => room?.send("react", { reaction }),
   };
 
   function freshOnline(): OnlineState {
@@ -668,6 +684,20 @@ export const useGame = create<Store>((set, get) => {
       if (room !== r) return;
       turnQueue.push({ msg, at: Date.now() });
       void drain();
+    });
+    r.onMessage("reaction", (msg: ReactionMessage) => {
+      if (room !== r) return;
+      const key = ++noteId;
+      set((st) => ({ reactions: { ...st.reactions, [msg.playerId]: { reaction: msg.reaction, key } } }));
+      sfx.tap();
+      const gen = generation;
+      later(REACTION_SHOW_MS, gen, () =>
+        set((st) => {
+          if (st.reactions[msg.playerId]?.key !== key) return {};
+          const { [msg.playerId]: _gone, ...rest } = st.reactions;
+          return { reactions: rest };
+        }),
+      );
     });
     r.onDrop(() => room === r && patchOnline({ status: "reconnecting" }));
     r.onReconnect(() => {

@@ -10,14 +10,17 @@ import {
   INTRO_MS,
   NAME_MAX,
   PACE,
+  REACTION_COOLDOWN_MS,
   RECONNECT_SECONDS,
   SEATS,
   TURN_SECONDS,
+  isReaction,
   isSeat,
   publicGame,
   turnPlaybackMs,
   type CreateRoomOptions,
   type JoinRoomOptions,
+  type ReactionMessage,
   type Seat,
   type StartedMessage,
   type TurnMessage,
@@ -108,6 +111,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   private turnTimer: { clear(): void } | null = null;
   private emptyTimer: { clear(): void } | null = null;
   private lastRollAt = new Map<string, number>();
+  private lastReactionAt = new Map<string, number>();
   private spectatorIds = new Set<string>();
 
   override messages = {
@@ -118,6 +122,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     removeBot: (client: Client, msg: { seat?: unknown }) => this.onRemoveBot(client, msg?.seat),
     start: (client: Client) => this.onStart(client),
     lobby: (client: Client) => this.onLobby(client),
+    react: (client: Client, msg: { reaction?: unknown }) => this.onReact(client, msg?.reaction),
   };
 
   override async onCreate(options: CreateRoomOptions = {}) {
@@ -191,6 +196,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   override onLeave(client: Client) {
     const id = client.sessionId;
     this.lastRollAt.delete(id);
+    this.lastReactionAt.delete(id);
     if (this.spectatorIds.delete(id)) this.state.spectators = this.spectatorIds.size;
     const player = this.state.players.get(id);
     if (player) {
@@ -298,6 +304,16 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     }
     this.syncTurnOrder();
     if (!this.state.players.get(this.state.hostId)) this.state.hostId = this.nextHost();
+  }
+
+  /** Seated players can react at any time; spectators watch quietly. Relayed, never stored. */
+  private onReact(client: Client, reaction: unknown) {
+    const id = client.sessionId;
+    if (!isReaction(reaction) || !this.state.players.get(id)) return;
+    const now = Date.now();
+    if (now - (this.lastReactionAt.get(id) ?? 0) < REACTION_COOLDOWN_MS) return;
+    this.lastReactionAt.set(id, now);
+    this.broadcast("reaction", { playerId: id, reaction } satisfies ReactionMessage);
   }
 
   // ---------- turns ----------

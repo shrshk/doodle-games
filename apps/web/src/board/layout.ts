@@ -35,6 +35,8 @@ export interface SheetLayout {
   speaker: Placed;
   /** day / night switch, next to the speaker */
   themeToggle: Placed;
+  /** online quick-reactions button, in a free spot of each sheet */
+  react: Placed;
   homeLink: Pt;
   /** "start" sits left of the waiting tokens when there is margin there, else to their right */
   startLabelLeft: boolean;
@@ -73,6 +75,7 @@ export const LANDSCAPE: SheetLayout = {
   mushrooms: [P(362, 450), P(1240, 520)],
   speaker: S(1420, 22, 1.15),
   themeToggle: S(1340, 22, 1.1),
+  react: S(1255, 24, 1.1),
   homeLink: P(1540, 30),
   startLabelLeft: true,
   critters: [
@@ -109,6 +112,7 @@ export const PORTRAIT: SheetLayout = {
   mushrooms: [P(30, 1560)],
   speaker: S(800, 38, 1.3),
   themeToggle: S(690, 40, 1.25),
+  react: S(905, 1172, 1.2),
   homeLink: P(925, 48),
   startLabelLeft: false,
   critters: [C("butterfly", 330, 120, 1.3), C("snail", 80, 1540, 1.3), C("coffee-stain", 900, 1460, 1.3), C("ladybug", 960, 1195, 1)],
@@ -141,6 +145,7 @@ export const PORTRAIT_TALL: SheetLayout = {
   mushrooms: [P(30, 1960)],
   speaker: S(800, 38, 1.3),
   themeToggle: S(690, 40, 1.25),
+  react: S(912, 1402, 1.25),
   homeLink: P(925, 48),
   startLabelLeft: false,
   critters: [
@@ -179,6 +184,7 @@ export const LANDSCAPE_SQUARE: SheetLayout = {
   mushrooms: [],
   speaker: S(1140, 32, 1.1),
   themeToggle: S(1060, 34, 1.05),
+  react: S(978, 34, 1.05),
   homeLink: P(1255, 40),
   startLabelLeft: false,
   critters: [C("ladybug", 950, 560, 1)],
