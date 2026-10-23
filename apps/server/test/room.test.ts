@@ -29,9 +29,17 @@ const create = async (options: Record<string, unknown>) => {
   return room;
 };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** Poll until check() holds; a check that throws (state not synced yet) counts as not yet. */
 const until = async (check: () => boolean, ms = 3000) => {
   const t0 = Date.now();
-  while (!check()) {
+  const holds = () => {
+    try {
+      return check();
+    } catch {
+      return false;
+    }
+  };
+  while (!holds()) {
     if (Date.now() - t0 > ms) throw new Error("timed out waiting");
     await sleep(5);
   }
@@ -41,6 +49,7 @@ const until = async (check: () => boolean, ms = 3000) => {
 async function twoPlayerRoom(createOptions: Record<string, unknown> = {}) {
   const host = await create({ name: "Ana", ...createOptions });
   const friend = await colyseus.sdk.joinById(host.roomId, { name: "Bo" });
+  await friend.waitForInitialState();
   const room = colyseus.getRoomById<GameRoom>(host.roomId);
   await until(() => view(host).turnOrder.length === 2 && view(friend).turnOrder.length === 2);
   return { host, friend, room };
@@ -68,6 +77,7 @@ describe("GameRoom", () => {
     expect(view(host).phase).toBe("lobby");
 
     const friend = await colyseus.sdk.joinById(host.roomId, { name: "Bo" });
+    await friend.waitForInitialState();
     await until(() => view(host).turnOrder.length === 2);
     friend.send("addBot", { seat: "orange" });
     friend.send("start");
