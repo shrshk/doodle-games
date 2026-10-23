@@ -6,3 +6,5 @@ dist/
 coverage/
 exports/*
 !exports/boards-a4.pdf
+test-results/
+playwright-report/

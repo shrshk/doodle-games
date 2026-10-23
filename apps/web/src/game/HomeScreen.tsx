@@ -9,7 +9,7 @@ const NEXT_KIND: Record<SlotKind, SlotKind> = { human: "bot", bot: "off", off: "
 const KIND_LABEL: Record<SlotKind, string> = { human: "player", bot: "bot", off: "empty" };
 
 export function HomeScreen() {
-  const { slots, setSlot, startGame, board, muted, toggleMute, selectBoard, rules, setRules } = useGame();
+  const { slots, setSlot, startGame, board, muted, toggleMute, selectBoard, rules, setRules, openOnline } = useGame();
   const [picking, setPicking] = useState(false);
   const active = slots.filter((s) => s.kind !== "off").length;
   const canStart = active >= 2;
@@ -102,6 +102,16 @@ export function HomeScreen() {
         }}
       >
         {canStart ? "play!" : "need 2 players"}
+      </button>
+      <button
+        type="button"
+        className="ink-link online-link"
+        onClick={() => {
+          sfx.tap();
+          openOnline();
+        }}
+      >
+        or play with friends online →
       </button>
     </main>
   );

@@ -55,6 +55,8 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
+  // the game server's own endpoints are live data, never cached
+  if (url.pathname.startsWith("/matchmake") || url.pathname.startsWith("/__")) return;
   if (request.mode === "navigate") return event.respondWith(networkFirst(request));
   if (url.origin === self.location.origin) return event.respondWith(cacheFirst(request, url.pathname.startsWith("/assets/") ? ASSETS : SHELL));
   if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {

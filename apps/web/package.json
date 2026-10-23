@@ -13,8 +13,10 @@
     "print:boards": "node scripts/print-boards.mjs"
   },
   "dependencies": {
+    "@colyseus/sdk": "0.18.5",
     "@snakes-doodle/boards": "workspace:*",
     "@snakes-doodle/engine": "workspace:*",
+    "@snakes-doodle/protocol": "workspace:*",
     "@snakes-doodle/ui-doodle": "workspace:*",
     "react": "18.3.1",
     "react-dom": "18.3.1",

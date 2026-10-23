@@ -5,7 +5,7 @@ import { cellCenter, makeGeom, startSpot } from "../board/geometry";
 import { MealLayer } from "../board/Snake";
 import { layoutFor } from "../board/layout";
 import { sfx } from "../sound";
-import { PACE, useGame } from "../store";
+import { canRollNow, PACE, useGame } from "../store";
 import { Caption, DiceButton, Notes, Roster, TitleCard } from "./Hud";
 import { LightLayer, type LightTargets } from "./LightLayer";
 import { Margins } from "./Margins";
@@ -53,16 +53,25 @@ export function GameScreen() {
     // runs once per mounted game
   }, []);
 
+  const online = s.online;
+  // online, the roll opens and the turn timer runs on the clock: tick while in a room
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!online) return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [!!online]);
+
   const current = game?.players.find((p) => p.id === game.turn.playerId);
   const canRoll = !!game && introDone && !s.busy && game.turn.phase === "awaitingRoll";
-  const humanCanRoll = canRoll && !!current && !current.isBot;
+  const humanCanRoll = canRollNow(s, now);
 
-  // bots roll after a short, human-looking pause
+  // bots roll after a short, human-looking pause (online, the server rolls for them)
   useEffect(() => {
-    if (!canRoll || !current?.isBot) return;
+    if (online || !canRoll || !current?.isBot) return;
     const t = setTimeout(() => useGame.getState().roll(), PACE.botThinkMin + Math.random() * (PACE.botThinkMax - PACE.botThinkMin));
     return () => clearTimeout(t);
-  }, [canRoll, current?.isBot, game?.turn.playerId, game?.log.length]);
+  }, [online, canRoll, current?.isBot, game?.turn.playerId, s.turnNo]);
 
   // Space / Enter rolls, unless focus is on some other control
   useEffect(() => {
@@ -72,9 +81,9 @@ export function GameScreen() {
       const onOtherControl = el && el !== document.body && !el.classList.contains("dice-button");
       if (onOtherControl || e.repeat) return;
       e.preventDefault();
+      // only for a person whose turn it is: never a bot's roll, never another tab's
       const st = useGame.getState();
-      const cur = st.game?.players.find((p) => p.id === st.game?.turn.playerId);
-      if (cur && !cur.isBot) st.roll();
+      if (canRollNow(st)) st.roll();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -116,17 +125,36 @@ export function GameScreen() {
 
   if (!game || !current) return null;
 
-  const label = !introDone
-    ? "getting ready..."
-    : game.turn.phase === "gameOver"
-      ? "gg"
-      : s.handoff
-        ? `${game.players.find((p) => p.id === s.handoff)?.name ?? ""}'s turn!`
-        : s.busy
-        ? "..."
-        : current.isBot
-          ? `${current.name} is thinking...`
-          : `${current.name}, tap to roll`;
+  const mine = online && current.id === online.me;
+  const away = online?.view?.players[current.id]?.connected === false;
+  const secondsLeft = online?.deadline ? Math.max(0, Math.ceil((online.deadline - now) / 1000)) : 0;
+  const label = online?.status === "reconnecting"
+    ? "reconnecting..."
+    : !introDone
+      ? "getting ready..."
+      : game.turn.phase === "gameOver"
+        ? "gg"
+        : s.handoff
+          ? `${game.players.find((p) => p.id === s.handoff)?.name ?? ""}'s turn!`
+          : s.busy || online?.rollSent
+            ? "..."
+            : current.isBot
+              ? `${current.name} is thinking...`
+              : !online
+                ? `${current.name}, tap to roll`
+                : mine
+                  ? humanCanRoll
+                    ? secondsLeft <= 10 ? `tap to roll (${secondsLeft})` : "your turn, tap to roll"
+                    : "your turn..."
+                  : away
+                    ? `${current.name} is away`
+                    : `${current.name}'s turn`;
+  // roster tags: who this tab is, and who has lost their connection
+  const tags = online?.view
+    ? Object.fromEntries(
+        game.players.map((p) => [p.id, p.id === online.me ? "you" : online.view!.players[p.id]?.connected === false ? "away" : ""]),
+      )
+    : undefined;
 
   const vb = `0 0 ${layout.width} ${layout.height}`;
   return (
@@ -157,12 +185,12 @@ export function GameScreen() {
           stage={TOKEN_STAGE[intro] ?? "full"}
           currentId={game.turn.playerId}
           showScribble={introDone && game.turn.phase === "awaitingRoll" && !s.busy}
-          turnKey={`${game.turn.playerId}-${game.log.length}`}
+          turnKey={`${game.turn.playerId}-${s.turnNo}`}
           waking={s.handoff}
         />
         {/* above the tokens, so the open mouth covers the token being swallowed */}
         {s.meal && <MealLayer geom={geom} snakes={art.snakes} meal={s.meal} />}
-        <Roster layout={layout} game={game} />
+        <Roster layout={layout} game={game} tags={tags} />
         <DiceButton
           layout={layout}
           value={s.dice.value}
@@ -207,7 +235,7 @@ export function GameScreen() {
         <g
           role="button"
           tabIndex={0}
-          aria-label="Back to the start page"
+          aria-label={online ? "Leave the room" : "Back to the start page"}
           className="home-link"
           onClick={s.goHome}
           onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && s.goHome()}
@@ -215,7 +243,7 @@ export function GameScreen() {
         >
           <rect x={-58} y={-34} width={116} height={48} fill="transparent" />
           <text textAnchor="middle" className="doodle-hand" fontSize={30} fill={palette.ink}>
-            ← home
+            {online ? "← leave" : "← home"}
           </text>
         </g>
       </svg>

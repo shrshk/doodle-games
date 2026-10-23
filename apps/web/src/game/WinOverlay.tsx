@@ -3,7 +3,7 @@ import { palette, Star, Token, type TokenColor } from "@snakes-doodle/ui-doodle"
 import { useGame } from "../store";
 
 export function WinOverlay() {
-  const { game, startGame, goHome, reducedMotion } = useGame();
+  const { game, startGame, goHome, reducedMotion, online, sendOnline } = useGame();
   const confetti = useMemo(
     () =>
       Array.from({ length: 26 }, (_, i) => ({
@@ -19,7 +19,9 @@ export function WinOverlay() {
   const winner = game.players.find((p) => p.finishedPlace === 1);
   if (!winner) return null;
   const others = game.players.filter((p) => p.id !== winner.id).sort((a, b) => (a.finishedPlace ?? 9) - (b.finishedPlace ?? 9));
-  const headline = winner.isBot ? `${winner.name} wins!` : "you win!";
+  // online there are several humans: only the winner's own tab says "you"
+  const isMe = online ? winner.id === online.me : !winner.isBot;
+  const headline = isMe ? "you win!" : `${winner.name} wins!`;
 
   return (
     <div className="win" role="dialog" aria-modal="true" aria-labelledby="win-title">
@@ -58,7 +60,7 @@ export function WinOverlay() {
           />
         </svg>
         <p className="win-sub">
-          {winner.isBot ? "" : `${winner.name} made it home.`} <span className="gg">gg</span>
+          {isMe ? `${winner.name} made it home.` : ""} <span className="gg">gg</span>
         </p>
         <div className="win-stars" aria-label="five stars">
           {[0, 1, 2, 3, 4].map((i) => (
@@ -73,11 +75,11 @@ export function WinOverlay() {
           </p>
         )}
         <div className="win-actions">
-          <button className="slip-button" onClick={startGame} autoFocus>
-            again?
+          <button className="slip-button" onClick={online ? () => sendOnline("lobby") : startGame} autoFocus>
+            {online ? "back to the room" : "again?"}
           </button>
           <button className="slip-button ghost" onClick={goHome}>
-            home
+            {online ? "leave" : "home"}
           </button>
         </div>
       </div>

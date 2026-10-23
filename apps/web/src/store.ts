@@ -1,12 +1,14 @@
 import { create } from "zustand";
 import type { Board } from "@snakes-doodle/boards";
-import { createGame, reduce, type GameEvent, type GameState, type PlayerState, type RuleSet } from "@snakes-doodle/engine";
-import { characterName, TOWER_HITS, TOWER_MS, type Mood, type TokenColor } from "@snakes-doodle/ui-doodle";
+import { createGame, reduce, trackFromBoard, type GameEvent, type GameState, type PlayerState, type RuleSet } from "@snakes-doodle/engine";
+import { PACE, type PublicGame, type RoomView, type StartedMessage, type TurnMessage } from "@snakes-doodle/protocol";
+import { characterName, TOWER_HITS, type Mood, type TokenColor } from "@snakes-doodle/ui-doodle";
 import { buildBoardArt, type BoardArt } from "./board/art";
 import type { Meal } from "./board/Snake";
 import { boardById, loadSetup, saveSetup, type Slot, type Theme } from "./setup";
 import { isMuted, setMuted, sfx } from "./sound";
 import { cellCenter, flatDist, lerpFlat, startSpot, type FlatPt } from "./board/geometry";
+import { createRoom, describeError, forgetRoom, joinRoom, rememberRoom, resumeRoom, type GameRoom } from "./net/online";
 
 export type { Slot, SlotKind } from "./setup";
 
@@ -30,27 +32,11 @@ export interface Moving {
   hidden?: boolean;
 }
 
-/** Every timing in one place (ms). Reduced motion skips tweens and caps waits. */
-export const PACE = {
-  /** the die's run down the dice tower */
-  diceTumble: TOWER_MS,
-  afterDice: 450,
-  beforeHop: 300,
-  hopPerSquare: 330,
-  afterLanding: 380,
-  rung: 230,
-  chomp: 700,
-  digestMin: 1700,
-  digestPerCell: 230,
-  spit: 650,
-  forfeitJump: 650,
-  blocked: 1100,
-  extraTurn: 900,
-  handoff: 1100,
-  beforeWin: 700,
-  botThinkMin: 900,
-  botThinkMax: 1500,
-};
+/**
+ * Every timing in one place (ms), shared with the online server so it knows how long a turn
+ * plays on screen. Reduced motion skips tweens and caps waits.
+ */
+export { PACE };
 
 export const DEFAULT_CAPTION = "the whale keeps the sleepers";
 
@@ -76,10 +62,28 @@ interface ViewState {
   busy: boolean;
   showWin: boolean;
   announcement: string;
+  /** bumps after every finished turn (online states carry no log to count) */
+  turnNo: number;
 }
 
+/** A room on the game server: the synced room state plus this tab's view of the turn clock. */
+export interface OnlineState {
+  status: "idle" | "connecting" | "in-room" | "reconnecting";
+  view: RoomView | null;
+  /** this tab's player (session) id */
+  me: string;
+  error: string;
+  /** local Date.now() ms when this tab may roll next, and when the turn timer runs out (0 = none) */
+  rollOpensAt: number;
+  deadline: number;
+  /** a roll is on its way to the server */
+  rollSent: boolean;
+}
+
+export type OnlineMessage = "seat" | "name" | "addBot" | "removeBot" | "start" | "lobby";
+
 interface Store extends ViewState {
-  screen: "home" | "game";
+  screen: "home" | "game" | "online";
   slots: Slot[];
   board: Board;
   art: BoardArt;
@@ -101,6 +105,25 @@ interface Store extends ViewState {
   startGame(): void;
   goHome(): void;
   roll(): void;
+  online: OnlineState | null;
+  /** the online page, not yet in a room */
+  openOnline(): void;
+  hostOnline(name: string): Promise<void>;
+  joinOnline(code: string, name: string): Promise<void>;
+  /** back into the room a refresh left, if any; true when it worked */
+  resumeOnline(): Promise<boolean>;
+  leaveOnline(): void;
+  sendOnline(type: OnlineMessage, payload?: object): void;
+}
+
+/** Whether this tab may roll right now: local turns any human's, online only its own seat once the server opens the roll. */
+export function canRollNow(s: Pick<Store, "game" | "busy" | "introDone" | "online">, now = Date.now()): boolean {
+  const g = s.game;
+  if (!g || s.busy || !s.introDone || g.turn.phase !== "awaitingRoll") return false;
+  const current = g.players.find((p) => p.id === g.turn.playerId);
+  if (!current) return false;
+  if (!s.online) return !current.isBot;
+  return current.id === s.online.me && !s.online.rollSent && now >= s.online.rollOpensAt;
 }
 
 const freshView = (): ViewState => ({
@@ -122,11 +145,45 @@ const freshView = (): ViewState => ({
   busy: false,
   showWin: false,
   announcement: "",
+  turnNo: 0,
 });
 
 const positionsOf = (g: GameState) => Object.fromEntries(g.players.map((p) => [p.id, p.position]));
 
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0]!;
+
+/** An online state as an engine state: the server keeps the RNG and log, nothing here needs them. */
+const fromPublic = (g: PublicGame): GameState => ({ ...g, rng: { seed: 0, cursor: 0 }, log: [] });
+
+/** Rebuild the game from the synced room state alone, for a tab that comes back mid-game. */
+function gameFromView(view: RoomView, board: Board): GameState {
+  const players = view.turnOrder
+    .map((id) => view.players[id])
+    .filter((p) => !!p)
+    .map((p) => ({ id: p.id, name: p.name, color: p.color, position: p.position, isBot: p.isBot, finishedPlace: p.place || undefined }));
+  return {
+    boardId: board.id,
+    rules: JSON.parse(view.rulesJson) as RuleSet,
+    track: trackFromBoard(board),
+    players,
+    turn: {
+      playerId: view.currentPlayerId || players[0]!.id,
+      consecutiveSixes: 0,
+      phase: view.phase === "finished" ? "gameOver" : "awaitingRoll",
+      startPosition: 0,
+      extraTurn: false,
+    },
+    rng: { seed: 0, cursor: 0 },
+    log: [],
+  };
+}
+
+/** The open room lives outside the store: it is a connection, not state to render. */
+let room: GameRoom | null = null;
+/** Turns from the server wait here and play one at a time, at the client's own pace. */
+let turnQueue: { msg: TurnMessage; at: number }[] = [];
+let draining = false;
+let lastSeq = 0;
 
 /** Bumped whenever a game starts or ends, so in-flight animations from the old game stop. */
 let generation = 0;
@@ -454,7 +511,11 @@ export const useGame = create<Store>((set, get) => {
 
     setReducedMotion: (on) => set({ reducedMotion: on }),
 
-    setIntroDone: () => set({ introDone: true }),
+    setIntroDone: () => {
+      set({ introDone: true });
+      // the first server turn may have arrived while the board was still drawing itself in
+      void drain();
+    },
 
     startGame: () => {
       generation++;
@@ -473,6 +534,7 @@ export const useGame = create<Store>((set, get) => {
     },
 
     goHome: () => {
+      if (get().online) return get().leaveOnline();
       generation++;
       set({ ...freshView(), screen: "home", game: null });
     },
@@ -480,7 +542,15 @@ export const useGame = create<Store>((set, get) => {
     roll: () => {
       const s = get();
       const g = s.game;
+      // locally this also rolls for bots; canRollNow is the "may a person here roll" check
       if (!g || s.busy || !s.introDone || g.turn.phase !== "awaitingRoll") return;
+      if (s.online) {
+        if (!canRollNow(s)) return;
+        // the server rolls; its turn message comes back to every tab, this one included
+        room?.send("roll");
+        set({ online: { ...s.online, rollSent: true } });
+        return;
+      }
       const result = reduce(g, { type: "ROLL", playerId: g.turn.playerId });
       if (result.error) return;
       const gen = generation;
@@ -488,33 +558,193 @@ export const useGame = create<Store>((set, get) => {
       // a drawing bug must never freeze the game: log it and still finish the turn from engine state
       void play(result.events, gen)
         .catch((err: unknown) => console.error("event_playback_failed", err))
-        .then(async () => {
-        if (!live(gen)) return;
-        let after = get().game!;
-        if (after.turn.phase === "animating") after = reduce(after, { type: "ANIMATION_DONE" }).state;
-        set({ game: after, moving: null, destination: null, display: positionsOf(after) });
-
-        if (after.turn.phase === "gameOver") {
-          await wait(PACE.beforeWin);
-          if (live(gen)) {
-            set({ busy: false, showWin: true });
-            sfx.win();
-          }
-          return;
-        }
-        // hand the turn over: a note, the next token wakes up, the roster loop slides down
-        const next = after.players.find((p) => p.id === after.turn.playerId)!;
-        const same = next.id === g.turn.playerId;
-        if (!same) {
-          note(`${next.name}'s turn`, "ink", gen, PACE.handoff + 300);
-          sfx.turn();
-        }
-        set((st) => ({ handoff: next.id, announcement: `${st.announcement} ${next.name}'s turn.` }));
-        await wait(PACE.handoff);
-        if (live(gen)) set({ handoff: null, busy: false });
-      });
+        .then(() => {
+          if (!live(gen)) return;
+          let after = get().game!;
+          if (after.turn.phase === "animating") after = reduce(after, { type: "ANIMATION_DONE" }).state;
+          return finishTurn(g.turn.playerId, after, gen);
+        });
     },
+
+    online: null,
+
+    openOnline: () => {
+      generation++;
+      set({ ...freshView(), screen: "online", game: null, online: { ...freshOnline(), error: get().online?.error ?? "" } });
+    },
+
+    hostOnline: async (name) => {
+      const { board, rules, slots } = get();
+      await connect(() =>
+        createRoom({ boardId: board.id, rules, name, seat: slots.find((sl) => sl.kind === "human")?.color }),
+      );
+    },
+
+    joinOnline: async (code, name) => {
+      await connect(() => joinRoom(code, { name }));
+    },
+
+    resumeOnline: async () => {
+      const r = await resumeRoom();
+      if (!r) return false;
+      set({ screen: "online", online: { ...freshOnline(), status: "in-room" } });
+      attach(r);
+      return true;
+    },
+
+    leaveOnline: () => {
+      generation++;
+      const r = room;
+      room = null;
+      turnQueue = [];
+      forgetRoom();
+      void r?.leave(true).catch(() => undefined);
+      set({ ...freshView(), screen: "home", game: null, online: null });
+    },
+
+    sendOnline: (type, payload) => room?.send(type, payload ?? {}),
   };
+
+  function freshOnline(): OnlineState {
+    return { status: "idle", view: null, me: "", error: "", rollOpensAt: 0, deadline: 0, rollSent: false };
+  }
+
+  function patchOnline(patch: Partial<OnlineState>) {
+    const o = get().online;
+    if (o) set({ online: { ...o, ...patch } });
+  }
+
+  /** After a turn has played: settle the final state, then the win or the hand-over to the next player. */
+  async function finishTurn(prevPlayerId: string, after: GameState, gen: number) {
+    set((st) => ({ game: after, moving: null, destination: null, display: positionsOf(after), turnNo: st.turnNo + 1 }));
+    if (after.turn.phase === "gameOver") {
+      await wait(PACE.beforeWin);
+      if (live(gen)) {
+        set({ busy: false, showWin: true });
+        sfx.win();
+      }
+      return;
+    }
+    // hand the turn over: a note, the next token wakes up, the roster loop slides down
+    const next = after.players.find((p) => p.id === after.turn.playerId)!;
+    if (next.id !== prevPlayerId) {
+      note(`${next.name}'s turn`, "ink", gen, PACE.handoff + 300);
+      sfx.turn();
+    }
+    set((st) => ({ handoff: next.id, announcement: `${st.announcement} ${next.name}'s turn.` }));
+    await wait(PACE.handoff);
+    if (live(gen)) set({ handoff: null, busy: false });
+  }
+
+  async function connect(open: () => Promise<GameRoom>) {
+    patchOnline({ status: "connecting", error: "" });
+    try {
+      attach(await open());
+    } catch (err) {
+      console.error("room_connect_failed", err);
+      patchOnline({ status: "idle", error: describeError(err) });
+    }
+  }
+
+  function attach(r: GameRoom) {
+    // one room per tab: a second open (a double click, a stale join) replaces the first
+    if (room && room !== r) {
+      room.removeAllListeners();
+      void room.leave(true).catch(() => undefined);
+    }
+    room = r;
+    turnQueue = [];
+    lastSeq = 0;
+    rememberRoom(r);
+    patchOnline({ status: "in-room", me: r.sessionId, error: "" });
+    r.onStateChange((state) => {
+      if (room !== r) return;
+      const view = state.toJSON();
+      patchOnline({ view });
+      route(view);
+    });
+    r.onMessage("started", (msg: StartedMessage) => room === r && enterGame(fromPublic(msg.game), msg.seq, Date.now() + msg.rollInMs));
+    r.onMessage("turn", (msg: TurnMessage) => {
+      if (room !== r) return;
+      turnQueue.push({ msg, at: Date.now() });
+      void drain();
+    });
+    r.onDrop(() => room === r && patchOnline({ status: "reconnecting" }));
+    r.onReconnect(() => {
+      if (room !== r) return;
+      rememberRoom(r);
+      patchOnline({ status: "in-room" });
+    });
+    r.onLeave(() => {
+      if (room !== r) return;
+      // the server closed the room, or the seat's reconnection window ran out
+      room = null;
+      forgetRoom();
+      generation++;
+      set({ ...freshView(), screen: "online", game: null, online: { ...freshOnline(), error: "the room closed" } });
+    });
+  }
+
+  /** Follow the room between its lobby and the board. */
+  function route(view: RoomView) {
+    const s = get();
+    if (view.phase === "lobby" && s.screen !== "online") {
+      generation++;
+      set({ ...freshView(), screen: "online", game: null });
+    } else if (view.phase !== "lobby" && !s.game) {
+      // back in mid-game (a refresh or a late join): there was no "started" message to build from
+      const board = JSON.parse(view.boardJson) as Board;
+      const game = gameFromView(view, board);
+      const deadline = view.turnDeadline ? Date.now() + Math.max(0, view.turnDeadline - Date.now()) : 0;
+      enterGame(game, 0, Date.now(), board, deadline);
+      if (view.phase === "finished") set({ showWin: true });
+    }
+  }
+
+  function enterGame(game: GameState, seq: number, rollOpensAt: number, boardIn?: Board, deadlineIn?: number) {
+    const view = get().online?.view;
+    const board = boardIn ?? (view ? (JSON.parse(view.boardJson) as Board) : get().board);
+    generation++;
+    turnQueue = [];
+    lastSeq = seq;
+    const deadline = deadlineIn ?? rollOpensAt + (view?.turnSeconds ?? 20) * 1000;
+    set((st) => ({
+      ...freshView(),
+      screen: "game",
+      board,
+      art: board.id === st.board.id ? st.art : buildBoardArt(board),
+      game,
+      gameNo: st.gameNo + 1,
+      introDone: false,
+      display: positionsOf(game),
+      online: st.online ? { ...st.online, rollOpensAt, deadline, rollSent: false } : st.online,
+    }));
+  }
+
+  /** Play queued server turns one after another; waits for the board intro to finish first. */
+  async function drain() {
+    if (draining || !get().introDone) return;
+    draining = true;
+    try {
+      while (turnQueue.length) {
+        const { msg, at } = turnQueue.shift()!;
+        if (msg.seq <= lastSeq) continue;
+        lastSeq = msg.seq;
+        const gen = generation;
+        const before = get().game;
+        if (!before) break;
+        set({ busy: true });
+        patchOnline({ rollSent: false });
+        await play(msg.events, gen).catch((err: unknown) => console.error("event_playback_failed", err));
+        if (!live(gen)) break;
+        patchOnline({ rollOpensAt: at + msg.rollInMs, deadline: msg.deadlineInMs ? at + msg.deadlineInMs : 0 });
+        await finishTurn(before.turn.playerId, fromPublic(msg.game), gen);
+        if (!live(gen)) break;
+      }
+    } finally {
+      draining = false;
+    }
+  }
 });
 
 // Dev-only handle for driving the game from the browser console or e2e scripts.

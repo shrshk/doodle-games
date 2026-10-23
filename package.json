@@ -9,9 +9,13 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint && node scripts/check-engine-purity.mjs",
     "balance": "pnpm --filter @snakes-doodle/engine balance",
-    "print:boards": "pnpm --filter @snakes-doodle/web print:boards"
+    "print:boards": "pnpm --filter @snakes-doodle/web print:boards",
+    "e2e": "playwright test",
+    "start": "node apps/server/dist/index.js",
+    "dev:server": "pnpm --filter @snakes-doodle/server dev"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.0",
     "turbo": "2.8.21",
     "typescript": "5.6.3"
   },

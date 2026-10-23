@@ -72,7 +72,7 @@ export function DiceButton({
   );
 }
 
-export function Roster({ layout, game }: { layout: SheetLayout; game: GameState }) {
+export function Roster({ layout, game, tags }: { layout: SheetLayout; game: GameState; tags?: Record<string, string> }) {
   const { x, y, width, rowH } = layout.roster;
   const portrait = layout.orientation === "portrait";
   const currentIndex = game.players.findIndex((p) => p.id === game.turn.playerId);
@@ -118,10 +118,10 @@ export function Roster({ layout, game }: { layout: SheetLayout; game: GameState 
             </g>
             <text x={rowH * 1.05} y={rowH * 0.62} className="doodle-hand" fontSize={portrait ? 30 : 26} fill={palette.ink}>
               {p.name}
-              {p.isBot && (
-                <tspan fill={palette.crayonBlue} fontSize={portrait ? 22 : 19}>
+              {(p.isBot || tags?.[p.id]) && (
+                <tspan fill={tags?.[p.id] === "away" ? palette.crayonRed : palette.crayonBlue} fontSize={portrait ? 22 : 19}>
                   {" "}
-                  (bot)
+                  ({p.isBot ? "bot" : tags![p.id]})
                 </tspan>
               )}
             </text>
