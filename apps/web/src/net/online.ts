@@ -39,6 +39,9 @@ export function forgetRoom() {
   }
 }
 
+/** The room this tab is seated in (survives a refresh or a pasted link), if any. */
+export const savedRoomCode = () => savedRoom()?.code ?? null;
+
 function savedRoom(): { token: string; code: string } | null {
   try {
     const raw = JSON.parse(sessionStorage.getItem(RESUME_KEY) ?? "null") as { token?: unknown; code?: unknown } | null;

@@ -25,6 +25,12 @@ test("two browsers make a room, join by code and link, and play it to the finish
   const code = (await ana.locator(".room-code-letters").textContent())!.trim();
   expect(code).toMatch(/^[A-Z2-9]{6}$/);
 
+  // pasting the share link into the host's own tab keeps the host's seat (no second "you")
+  await ana.goto(`/join/${code}`);
+  await expect(ana.locator(".room-code-letters")).toHaveText(code);
+  await expect(ana.getByText("you", { exact: true })).toHaveCount(1);
+  await expect(ana.getByRole("button", { name: /start!|waiting for players/ })).toBeVisible();
+
   // Bo comes in through the share link
   await bo.goto(`/join/${code}`);
   await expect(bo.locator(".room-code-letters")).toHaveText(code);

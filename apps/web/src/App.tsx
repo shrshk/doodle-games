@@ -3,7 +3,8 @@ import { PencilDefs, startBlinking } from "@snakes-doodle/ui-doodle";
 import { GameScreen } from "./game/GameScreen";
 import { HomeScreen } from "./game/HomeScreen";
 import { OnlineScreen } from "./game/OnlineScreen";
-import { codeFromPath } from "./net/online";
+import { normalizeCode } from "@snakes-doodle/protocol";
+import { codeFromPath, savedRoomCode } from "./net/online";
 import { usePrefersReducedMotion } from "./game/useViewport";
 import { unlockAudio } from "./sound";
 import { useGame } from "./store";
@@ -15,15 +16,19 @@ export function App() {
   useEffect(() => useGame.getState().setReducedMotion(reduced), [reduced]);
   useEffect(() => (reduced ? undefined : startBlinking()), [reduced]);
 
-  // a /join/ABC123 link opens the online page with that code; otherwise a refresh rejoins the
-  // room this tab was in. The address goes back to "/" so a later refresh does not join twice.
-  const [joinCode] = useState(() => codeFromPath() ?? "");
+  // A /join/ABC123 link opens the online page with that code; otherwise a refresh rejoins the
+  // room this tab was in. A link to the room this tab is already seated in (the host pasting their
+  // own share link) takes the seat back instead of joining a second time as someone new.
+  // The address goes back to "/" so a later refresh does not join twice.
+  const [joinCode] = useState(() => {
+    const code = codeFromPath();
+    return code && normalizeCode(code) !== savedRoomCode() ? code : "";
+  });
   useEffect(() => {
     const st = useGame.getState();
-    if (joinCode) {
-      history.replaceState(null, "", "/");
-      st.openOnline();
-    } else void st.resumeOnline();
+    if (codeFromPath()) history.replaceState(null, "", "/");
+    if (joinCode) st.openOnline();
+    else void st.resumeOnline();
   }, []);
 
   // audio may only start after a user gesture; M toggles sound anywhere outside text fields
