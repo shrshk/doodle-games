@@ -67,13 +67,19 @@ export async function resumeRoom(): Promise<GameRoom | null> {
   }
 }
 
-/** Server errors arrive as Error messages like "board_unknown"; turn them into words. */
+/**
+ * Turn a matchmaking failure into words. The SDK's MatchMakeError carries a `code`: 522 is a room
+ * that does not exist (or closed), a plain HTTP 404 means this page was not served by a game server
+ * (an old install from another address), and a failed fetch means the server is unreachable.
+ */
 export function describeError(err: unknown): string {
-  const msg = err instanceof Error ? err.message : String(err);
-  if (/not found|invalid|expired/i.test(msg) && !/board/.test(msg)) return "no room with that code (it may have closed)";
+  const e = err as { code?: unknown; message?: unknown };
+  const msg = typeof e?.message === "string" ? e.message : String(err);
+  if (e?.code === 522 || /not found/i.test(msg) && /room/i.test(msg)) return "no room with that code (it may have closed)";
+  if (e?.code === 404) return `there's no game server at ${location.host}: open the game from the server's address`;
   if (/locked|full/i.test(msg)) return "that room is full";
   if (/board/.test(msg)) return "the server did not accept that board";
-  if (/fetch|network|ECONNREFUSED|Failed/i.test(msg)) return "can't reach the game server";
+  if (e?.code === "ECONNREFUSED" || /fetch|network|Failed|Load failed/i.test(msg)) return "can't reach the game server";
   return "something went wrong, try again";
 }
 

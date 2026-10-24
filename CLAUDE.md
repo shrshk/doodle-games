@@ -2,7 +2,8 @@
 
 Doodle Snakes & Ladders: a browser Snakes & Ladders game drawn like crayon doodles on paper.
 `docs/HANDOFF.md` is the product spec and phase plan; `docs/reference/` holds the style frames.
-Work phase by phase and stop at each phase's acceptance criteria.
+Work phase by phase and stop at each phase's acceptance criteria. Phase 3 (board editor and photo
+import) is dropped: new boards are added as inbuilt JSON instead (see Boards below).
 
 ## Commands
 
@@ -55,7 +56,7 @@ something, it lives in `apps/web` or `packages/ui-doodle`.
   from `hashString(board.id)`. It is projected through a homography (`projection.ts`) at render
   time, so the wobble is identical on every reload and a layout change never reseeds it.
 - Changing the order or number of `rng()` calls in `art.ts` changes every board's look. That is
-  fine before boards are shared; after Phase 3, treat it as a breaking change.
+  fine: boards are only ever inbuilt, and every client draws them from the same code.
 - Visual-only randomness (dice flicker, bot delay, confetti) may use `Math.random` in `apps/web`.
 - Colours come from `palette` in `ui-doodle`; ink is dark brown `#3B2F2A`, never pure black.
 - Every animation must respect `prefers-reduced-motion` (CSS media query plus `reducedMotion` in
@@ -154,7 +155,7 @@ something, it lives in `apps/web` or `packages/ui-doodle`.
   (`properties.test.ts`). Pin die rolls with `seedFor([...values])` from `test/helpers.ts`.
 - Boards: `packages/boards/src/geometry.test.ts`.
 - Rooms: `apps/server/test/room.test.ts` with `@colyseus/testing` (join by code, host-only start,
-  out-of-turn roll, timer roll and skip, reconnect, a full game, custom boards, empty-room close,
+  out-of-turn roll, timer roll and skip, reconnect, a full game, unknown boards, empty-room close,
   reactions).
 - E2E: `e2e/*.spec.ts` (Playwright, reduced motion, server at `TIMING_SCALE=0.05`).
 - New dependencies need the owner's approval first (see the handoff's stack table).

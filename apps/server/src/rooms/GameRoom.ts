@@ -1,6 +1,6 @@
 import { randomInt } from "node:crypto";
 import { Room, type Client } from "@colyseus/core";
-import { inbuiltBoards, parseBoard, type Board } from "@snakes-doodle/boards";
+import { inbuiltBoards, type Board } from "@snakes-doodle/boards";
 import { DEFAULT_RULES, createGame, reduce, validateBoard, type GameEvent, type GameState, type RuleSet } from "@snakes-doodle/engine";
 import {
   BOT_NAMES,
@@ -45,15 +45,6 @@ function log(event: string, fields: Record<string, unknown>) {
 export class RoomOptionsError extends Error {}
 
 export function resolveBoard(options: CreateRoomOptions): Board {
-  if (options.board !== undefined) {
-    let board: Board;
-    try {
-      board = parseBoard(options.board);
-    } catch {
-      throw new RoomOptionsError("board_invalid_json");
-    }
-    return board;
-  }
   const board = inbuiltBoards.find((b) => b.id === (options.boardId ?? "classic-100"));
   if (!board) throw new RoomOptionsError("board_unknown");
   return board;
@@ -133,7 +124,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   override async onCreate(options: CreateRoomOptions = {}) {
     this.board = resolveBoard(options);
     this.rules = resolveRules(options.rules);
-    // a custom board is checked against the room's own rules (chain jumps change what is legal)
+    // inbuilt boards are tested valid under every rule set; this keeps a bad future board out of play
     const check = validateBoard(this.board, { chainJumps: this.rules.chainJumps });
     if (!check.ok) throw new RoomOptionsError(`board_invalid: ${check.errors.join("; ")}`);
     this.onTimeout = options.onTimeout === "skip" ? "skip" : "roll";

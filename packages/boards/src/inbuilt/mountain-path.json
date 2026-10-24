@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "id": "mountain-path",
+  "name": "Mountain Path",
+  "author": "inbuilt",
+  "grid": {
+    "rows": 10,
+    "cols": 10,
+    "layout": "boustrophedon",
+    "origin": "bottom-left"
+  },
+  "snakes": [
+    {
+      "from": 99,
+      "to": 41,
+      "style": 4
+    },
+    {
+      "from": 87,
+      "to": 24,
+      "style": 1
+    },
+    {
+      "from": 70,
+      "to": 33,
+      "style": 6
+    },
+    {
+      "from": 58,
+      "to": 17,
+      "style": 2
+    }
+  ],
+  "ladders": [
+    {
+      "from": 4,
+      "to": 38
+    },
+    {
+      "from": 19,
+      "to": 61
+    },
+    {
+      "from": 35,
+      "to": 77
+    },
+    {
+      "from": 52,
+      "to": 91
+    }
+  ],
+  "theme": {
+    "paper": "ruled"
+  },
+  "source": {
+    "kind": "inbuilt"
+  },
+  "decorations": [
+    {
+      "square": 10,
+      "doodle": "grass"
+    },
+    {
+      "square": 28,
+      "doodle": "star"
+    },
+    {
+      "square": 46,
+      "doodle": "sparkle"
+    },
+    {
+      "square": 65,
+      "doodle": "star"
+    },
+    {
+      "square": 80,
+      "doodle": "sparkle"
+    },
+    {
+      "square": 95,
+      "doodle": "star"
+    }
+  ]
+}

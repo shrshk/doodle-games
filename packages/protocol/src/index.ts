@@ -27,10 +27,8 @@ export const EMPTY_ROOM_SECONDS = 60;
 export const INTRO_MS = 3500;
 
 export interface CreateRoomOptions {
-  /** an inbuilt board, or */
+  /** an inbuilt board's id (default classic-100) */
   boardId?: string;
-  /** a custom board as JSON; the server parses and validates it */
-  board?: unknown;
   rules?: Partial<RuleSet>;
   turnSeconds?: number;
   /** when a turn timer runs out: roll for the player (default) or skip them */

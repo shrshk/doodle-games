@@ -225,7 +225,7 @@ Four phases, each shippable on its own; Phases 3 and 4 both depend only on Phase
 - [x] Spiral layout supported by the renderer and engine.
 - [x] Last-used board and rules remembered in `localStorage`.
 
-**Phase 3 — Board editor and image import**
+**Phase 3 — Board editor and image import** (dropped 2026-10-24: the owner chose more inbuilt boards instead; three were added: pocket sheet, garden party, mountain path)
 
 - [ ] Board editor: set grid, numbering, and add, drag or delete snakes and ladders, with live validation.
 - [ ] Upload → corner marking → perspective correction in the browser.
@@ -238,7 +238,7 @@ Four phases, each shippable on its own; Phases 3 and 4 both depend only on Phase
 - [x] `GameRoom` runs the shared engine; clients only send `roll`.
 - [x] Create room → join by code or link → lobby → start → finish, across two browsers.
 - [x] Turn timer with auto-roll; reconnection within 120 s restores the seat.
-- [x] Custom and imported boards playable online (validated server-side). Custom board JSON is parsed and validated when a room opens; imported boards ride the same path once Phase 3 exists.
+- [x] ~~Custom and imported boards playable online (validated server-side).~~ Dropped with Phase 3: rooms take an inbuilt board id only.
 - [ ] Room tests and a two-browser Playwright test pass in CI; server container builds and deploys. Room tests, both Playwright tests and the image build pass locally; CI runs them in `.github/workflows/ci.yml`. Deploy: `docs/HOSTING.md` (MacBook Air, games.shirishve.com).
 
 ## Board import from images

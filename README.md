@@ -3,10 +3,10 @@
 Snakes & Ladders that looks like a crayon-and-coloured-pencil doodle on cream paper. Pass-and-play
 for 2–4 players with optional bots, or online with friends by room code.
 
-Status: **Phases 1, 2 and 4** done: the local game, seven inbuilt boards (classic, quick 6x6, snake
-pit, ladder climb, spiral notebook, Moksha Patam, big 12x12) with a doodled picker and house rules,
-and online multiplayer on Colyseus. Phase 3 (board import from photos) is next. See
-`docs/HANDOFF.md` for the roadmap.
+Status: done. The local game, ten inbuilt boards (classic, quick 6x6, pocket 7x7, ladder climb,
+spiral notebook, Moksha Patam, garden party, mountain path, snake pit, big 12x12) with a doodled
+picker and house rules, and online multiplayer on Colyseus. Board upload from photos (the
+handoff's Phase 3) was dropped in favour of more inbuilt boards. See `docs/HANDOFF.md`.
 
 ```sh
 pnpm install

@@ -1,6 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { boot, type ColyseusTestServer } from "@colyseus/testing";
-import { classic100 } from "@snakes-doodle/boards";
 import { ROOM_NAME, isRoomCode, type ReactionMessage, type RoomView, type TurnMessage } from "@snakes-doodle/protocol";
 import { createGameServer } from "../src/app";
 import { GameRoom, REAL_TIMING } from "../src/rooms/GameRoom";
@@ -194,15 +193,9 @@ describe("GameRoom", () => {
     await expect(colyseus.sdk.joinById(code)).rejects.toThrow();
   });
 
-  it("accepts a valid custom board and refuses a broken one", async () => {
-    const custom = { ...classic100, id: "my-board", name: "My board" };
-    const ok = await create({ name: "Ana", board: custom });
-    await until(() => view(ok).boardId === "my-board");
-
-    // a snake whose head is on a ladder foot breaks the board
-    const broken = { ...custom, snakes: [...custom.snakes, { from: custom.ladders[0]!.from + 0, to: 2 }] };
-    await expect(colyseus.sdk.create(ROOM_NAME, { board: broken })).rejects.toThrow(/board_invalid/);
-    await expect(colyseus.sdk.create(ROOM_NAME, { board: { nonsense: true } })).rejects.toThrow(/board_invalid_json/);
+  it("opens any inbuilt board and refuses an unknown one", async () => {
+    const room = await create({ name: "Ana", boardId: "garden-party" });
+    expect(view(room).boardId).toBe("garden-party");
     await expect(colyseus.sdk.create(ROOM_NAME, { boardId: "nope" })).rejects.toThrow(/board_unknown/);
   });
 

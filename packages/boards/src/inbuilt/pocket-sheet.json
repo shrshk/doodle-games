@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "pocket-sheet",
+  "name": "Pocket Sheet",
+  "author": "inbuilt",
+  "grid": {
+    "rows": 7,
+    "cols": 7,
+    "layout": "boustrophedon",
+    "origin": "bottom-left"
+  },
+  "snakes": [
+    {
+      "from": 47,
+      "to": 29,
+      "style": 5
+    },
+    {
+      "from": 38,
+      "to": 22,
+      "style": 0
+    },
+    {
+      "from": 25,
+      "to": 9,
+      "style": 3
+    },
+    {
+      "from": 17,
+      "to": 5,
+      "style": 7
+    }
+  ],
+  "ladders": [
+    {
+      "from": 2,
+      "to": 15
+    },
+    {
+      "from": 11,
+      "to": 26
+    },
+    {
+      "from": 20,
+      "to": 33
+    },
+    {
+      "from": 30,
+      "to": 44
+    }
+  ],
+  "theme": {
+    "paper": "kraft"
+  },
+  "source": {
+    "kind": "inbuilt"
+  },
+  "decorations": [
+    {
+      "square": 7,
+      "doodle": "heart"
+    },
+    {
+      "square": 23,
+      "doodle": "sparkle"
+    },
+    {
+      "square": 36,
+      "doodle": "mushroom"
+    },
+    {
+      "square": 42,
+      "doodle": "flower"
+    }
+  ]
+}
