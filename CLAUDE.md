@@ -124,6 +124,10 @@ something, it lives in `apps/web` or `packages/ui-doodle`.
   every device defaults to its own first slot's name, so two friends would both be "Mush".
 - Startup resume runs once at a time (`resuming` in `store.ts`): a second reconnect with the same
   token fails and would forget the room (StrictMode runs effects twice in dev).
+- Abuse limits live in `GameRoom.limits` (`DEFAULT_LIMITS`): 30 creates+joins per address per
+  minute (static `onAuth`, prefers Cloudflare's `CF-Connecting-IP`), 200 open rooms, 20 messages per
+  client per second (Colyseus disconnects above it). Volumetric DDoS is not the app's job: the
+  Cloudflare tunnel in front of the Air absorbs it and hides the home IP. Tests relax the limits.
 - Room codes are the Colyseus room id (6 characters, no I/O/0/1), claimed through presence.
   `/join/CODE` opens the app on that room; the server answers any unknown path with `index.html`.
 - `GameRoom.timing` scales every wait; room tests run whole games in milliseconds, and

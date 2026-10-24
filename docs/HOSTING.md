@@ -102,6 +102,18 @@ same origin it was loaded from, so no client configuration is needed for any of 
 - Restart the service (`docker restart snakes`, or `launchctl kickstart -k gui/$UID/com.shirishve.snakes`):
   the page comes back by itself.
 
+## Set up (done 2026-10-24)
+
+Node 22.20.0 in `~/.local/node`, the repo in `~/apps/snakes_and_ladders`, and the launchd agent
+`~/Library/LaunchAgents/com.shirishve.snakes.plist` (runs `apps/server/dist/index.js` on 0.0.0.0:2567,
+KeepAlive, logs to `~/Library/Logs/snakes-doodle.log`). On the LAN: `http://shirishs-m2.local:2567`.
+
+Update from the M1 Max in one go:
+
+```sh
+ssh -i ~/.ssh/id_ed25519_air shrshk7@Shirishs-M2.local 'export PATH=$HOME/.local/node/bin:$PATH; cd ~/apps/snakes_and_ladders && git pull -q && pnpm install --frozen-lockfile && pnpm build && launchctl kickstart -k gui/$(id -u)/com.shirishve.snakes'
+```
+
 ## 4. Updating
 
 `git pull`, then rebuild and restart: `docker build ... && docker rm -f snakes && docker run ...`,

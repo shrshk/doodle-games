@@ -76,6 +76,8 @@ export function describeError(err: unknown): string {
   const e = err as { code?: unknown; message?: unknown };
   const msg = typeof e?.message === "string" ? e.message : String(err);
   if (e?.code === 522 || /not found/i.test(msg) && /room/i.test(msg)) return "no room with that code (it may have closed)";
+  if (e?.code === 429 || /too_many_requests/.test(msg)) return "too many tries from here, wait a minute";
+  if (/server_busy/.test(msg)) return "the game server is full right now, try again later";
   if (e?.code === 404) return `there's no game server at ${location.host}: open the game from the server's address`;
   if (/locked|full/i.test(msg)) return "that room is full";
   if (/board/.test(msg)) return "the server did not accept that board";

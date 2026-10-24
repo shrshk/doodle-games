@@ -2,18 +2,23 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { boot, type ColyseusTestServer } from "@colyseus/testing";
 import { ROOM_NAME, isRoomCode, type ReactionMessage, type RoomView, type TurnMessage } from "@snakes-doodle/protocol";
 import { createGameServer } from "../src/app";
-import { GameRoom, REAL_TIMING } from "../src/rooms/GameRoom";
+import { DEFAULT_LIMITS, GameRoom, REAL_TIMING, resetRateLimits } from "../src/rooms/GameRoom";
 
 // Turns take milliseconds here: no intro, no playback wait, a 5 "second" timer that lasts 50 ms.
 const FAST = { introMs: 0, playbackScale: 0, secondMs: 10, botThinkMinMs: 5, botThinkMaxMs: 10, awayRollMs: 5, emptyRoomMs: 100 };
 
 let colyseus: ColyseusTestServer;
+// the suite opens dozens of rooms from one address in seconds: limits are lifted except where tested
+const RELAXED = { joinsPerMinute: 10_000, maxRooms: 10_000, messagesPerSecond: 1_000 };
+
 beforeAll(async () => {
   GameRoom.timing = FAST;
+  GameRoom.limits = RELAXED;
   colyseus = await boot(createGameServer());
 });
 afterAll(async () => {
   GameRoom.timing = REAL_TIMING;
+  GameRoom.limits = DEFAULT_LIMITS;
   await colyseus.shutdown();
 });
 afterEach(async () => colyseus.cleanup());
@@ -182,6 +187,45 @@ describe("GameRoom", () => {
     await until(() => seen.length === 1);
     await sleep(80);
     expect(seen).toEqual([{ playerId: host.sessionId, reaction: "yay" }]);
+  });
+
+  it("limits how often one address can open or join rooms", async () => {
+    resetRateLimits();
+    GameRoom.limits = { ...RELAXED, joinsPerMinute: 3 };
+    try {
+      const host = await create({ name: "Ana" });
+      await colyseus.sdk.joinById(host.roomId, { name: "Bo" });
+      await create({ name: "Cy" });
+      await expect(colyseus.sdk.create(ROOM_NAME, { name: "Di" })).rejects.toThrow(/too_many_requests/);
+    } finally {
+      GameRoom.limits = RELAXED;
+      resetRateLimits();
+    }
+  });
+
+  it("refuses new rooms once the server holds its maximum", async () => {
+    await create({ name: "Ana" });
+    await create({ name: "Bo" });
+    GameRoom.limits = { ...RELAXED, maxRooms: 2 };
+    try {
+      await expect(colyseus.sdk.create(ROOM_NAME, { name: "Cy" })).rejects.toThrow(/server_busy/);
+    } finally {
+      GameRoom.limits = RELAXED;
+    }
+  });
+
+  it("disconnects a client that floods the room with messages", async () => {
+    GameRoom.limits = { ...RELAXED, messagesPerSecond: 20 };
+    try {
+      const host = await create({ name: "Ana" });
+      host.reconnection.enabled = false;
+      let left = false;
+      host.onLeave(() => (left = true));
+      for (let i = 0; i < 200; i++) host.send("react", { reaction: "yay" });
+      await until(() => left, 3000);
+    } finally {
+      GameRoom.limits = RELAXED;
+    }
   });
 
   it("closes a room once everyone has left and nobody comes back", async () => {
