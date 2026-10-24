@@ -18,6 +18,13 @@ It keeps rooms in memory: a restart ends the games in progress, and nothing else
 no database). One process is enough for this. Colyseus only needs sticky sessions with more than
 one process, so they do not matter here.
 
+## The Air today (checked 2026-10-24 over SSH from the M1 Max)
+
+`ssh -i ~/.ssh/id_ed25519_air shrshk7@Shirishs-M2.local` works from the M1 Max. The Air is arm64
+on macOS 27.0.1 with git, but no Node, Docker or Homebrew. The quickest runtime with no admin
+password is Node 22 from the official arm64 tarball, unpacked into `~/.local/node`, with
+`corepack enable` for pnpm. Docker Desktop or Homebrew need the owner's admin password.
+
 ## 1. Get it running on the Air
 
 ```sh
@@ -76,6 +83,12 @@ a small launchd job that compares `curl ifconfig.me` with the record and UPSERTs
 
 **C. Tailscale Funnel** is the quickest, but it serves only `*.ts.net` names, not the custom domain.
 It is fine as a stopgap.
+
+**About the certificate.** A normal AWS Certificate Manager (ACM) certificate cannot be installed on
+the Air: ACM certificates attach to AWS services (CloudFront, load balancers), and the private key
+never leaves AWS. ACM's *exportable* public certificates (2025) can be exported, but they cost per
+domain name and must be exported again on every renewal. Prefer Let's Encrypt through Caddy (path
+B): free, and it renews by itself. With path A, Cloudflare provides the certificate.
 
 The page needs HTTPS for the PWA install and the service worker. The game client connects to the
 same origin it was loaded from, so no client configuration is needed for any of these paths.
