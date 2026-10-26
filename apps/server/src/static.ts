@@ -38,6 +38,12 @@ export function serveStatic(dir: string) {
     // never serve outside the client folder
     const inside = file.startsWith(root + "/") || file === root;
     const isFile = inside && existsSync(file) && statSync(file).isFile();
+    // icons and the manifest are what an install fetches: log them, so a blank home-screen icon
+    // can be traced to what the phone actually asked for
+    if (/icon|manifest/i.test(path)) {
+      const agent = String(req.headers["user-agent"] ?? "").slice(0, 120);
+      console.log(JSON.stringify({ t: new Date().toISOString(), event: "install_asset", path, found: isFile, agent }));
+    }
     // a missing file is a 404, never the app: iOS probes /apple-touch-icon.png and /favicon.ico, and
     // an HTML page there (with 200) left the home-screen icon blank. Only page paths such as
     // /join/ABC123 (no extension) fall back to index.html.
