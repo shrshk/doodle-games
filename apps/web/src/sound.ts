@@ -123,6 +123,63 @@ function noise(dur: number, { freq = 2000, q = 1, gain = 0.2, filter = "bandpass
   src.stop(t + dur + 0.02);
 }
 
+interface HeldOpts {
+  type?: OscillatorType;
+  gain?: number;
+  attack?: number;
+  release?: number;
+  delay?: number;
+  /** lowpass cutoff, to keep pads soft */
+  cutoff?: number;
+  /** cents, for a slow chorus between two voices */
+  detune?: number;
+}
+
+/** A sustained note (fade in, hold, fade out), for the pad under the intro tune. */
+function held(freq: number, dur: number, { type = "triangle", gain = 0.03, attack = 0.25, release = 0.5, delay = 0, cutoff = 1400, detune = 0 }: HeldOpts = {}) {
+  const c = ready();
+  if (!c) return;
+  const t = c.currentTime + delay;
+  const osc = c.createOscillator();
+  const lp = c.createBiquadFilter();
+  const env = c.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  osc.detune.value = detune;
+  lp.type = "lowpass";
+  lp.frequency.value = cutoff;
+  env.gain.setValueAtTime(0.0001, t);
+  env.gain.linearRampToValueAtTime(gain, t + attack);
+  env.gain.setValueAtTime(gain, t + Math.max(attack, dur - release));
+  env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(lp).connect(env).connect(master!);
+  osc.start(t);
+  osc.stop(t + dur + 0.05);
+}
+
+/** A music-box pluck: a bright fundamental with a quieter octave above, ringing out. */
+function pluck(freq: number, delay: number, gain = 0.07, ring = 0.7) {
+  tone(freq, ring, { type: "triangle", gain, delay, attack: 0.004 });
+  tone(freq * 2, ring * 0.5, { type: "sine", gain: gain * 0.35, delay, attack: 0.004 });
+}
+
+/**
+ * The intro tune, timed to the board drawing itself in (GameScreen's INTRO): one chord per 0.8 s
+ * while the grid, the hatching and the pieces arrive (C, A minor, F, G), then home to C as the
+ * board is ready at 3.3 s. About 4 s, played once per game, under the sound effects' level.
+ */
+const INTRO_TUNE = {
+  step: 0.2,
+  chords: [
+    { pad: [261.6, 329.6, 392], bass: 130.8, arp: [659.3, 784, 1046.5, 784] },
+    { pad: [220, 261.6, 329.6], bass: 110, arp: [880, 1046.5, 1318.5, 1046.5] },
+    { pad: [174.6, 220, 261.6], bass: 87.3, arp: [698.5, 880, 1046.5, 880] },
+    { pad: [196, 246.9, 293.7], bass: 98, arp: [784, 987.8, 1174.7, 1568] },
+  ],
+  /** when the board is ready (GameScreen INTRO stage 6) */
+  home: 3.3,
+};
+
 // C major pentatonic, two octaves: ladders climb up it
 const PENTA = [523.3, 587.3, 659.3, 784, 880, 1046.5, 1174.7, 1318.5, 1568, 1760];
 
@@ -159,6 +216,27 @@ export const sfx = {
   unfold() {
     noise(0.55, { freq: 700, q: 0.6, gain: 0.09, to: 3200 });
     tone(140, 0.18, { type: "sine", gain: 0.1, to: 90, delay: 0.5 });
+  },
+
+  /** the music-box tune that plays while the board draws itself in */
+  introMusic() {
+    const { step, chords, home } = INTRO_TUNE;
+    const bar = step * 4;
+    chords.forEach((ch, i) => {
+      const at = i * bar;
+      ch.pad.forEach((f) => {
+        held(f, bar + 0.35, { delay: at, gain: 0.022, detune: -6 });
+        held(f, bar + 0.35, { delay: at, gain: 0.018, detune: 7, type: "sine" });
+      });
+      tone(ch.bass, 0.5, { type: "sine", gain: 0.07, delay: at, attack: 0.01 });
+      tone(ch.bass * 1.5, 0.3, { type: "sine", gain: 0.03, delay: at + bar / 2, attack: 0.01 });
+      ch.arp.forEach((f, k) => pluck(f, at + k * step, k === 0 ? 0.08 : 0.06));
+    });
+    // home: the C chord rings out, a quick bell run on top, a few sparkles as the tokens appear
+    [261.6, 329.6, 392, 523.3].forEach((f) => held(f, 1.3, { delay: home, gain: 0.024, attack: 0.05, release: 1 }));
+    tone(130.8, 0.9, { type: "sine", gain: 0.08, delay: home, attack: 0.01 });
+    [1046.5, 1318.5, 1568, 2093].forEach((f, k) => pluck(f, home + k * 0.07, 0.06, 1.1));
+    for (let k = 0; k < 4; k++) tone(2400 + Math.random() * 1400, 0.15, { type: "sine", gain: 0.018, delay: home + 0.35 + k * 0.1 });
   },
 
   /** soft springy hop; rises a little each square */

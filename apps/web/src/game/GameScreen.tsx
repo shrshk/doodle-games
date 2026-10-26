@@ -16,6 +16,7 @@ import { WinOverlay } from "./WinOverlay";
 
 // Intro timeline (ms): grid strokes in, hatching fills, snakes and ladders draw, then tokens
 // sketch themselves in as outline -> egg -> character.
+// sfx.introMusic is timed to these stages (it resolves at 3300 ms): change them together.
 const INTRO = [
   { at: 0, stage: 0 },
   { at: 1000, stage: 1 },
@@ -46,6 +47,7 @@ export function GameScreen() {
       return;
     }
     sfx.unfold();
+    sfx.introMusic();
     const timers = INTRO.map(({ at, stage }) =>
       setTimeout(() => {
         setIntro(stage);
