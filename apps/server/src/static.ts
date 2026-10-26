@@ -38,6 +38,13 @@ export function serveStatic(dir: string) {
     // never serve outside the client folder
     const inside = file.startsWith(root + "/") || file === root;
     const isFile = inside && existsSync(file) && statSync(file).isFile();
+    // a missing file is a 404, never the app: iOS probes /apple-touch-icon.png and /favicon.ico, and
+    // an HTML page there (with 200) left the home-screen icon blank. Only page paths such as
+    // /join/ABC123 (no extension) fall back to index.html.
+    if (!isFile && extname(path) !== "") {
+      res.statusCode = 404;
+      return res.end();
+    }
     const target = isFile ? file : index;
     const ext = extname(target);
     res.setHeader("Content-Type", TYPES[ext] ?? "application/octet-stream");

@@ -1,4 +1,4 @@
-import { memo, useMemo, type CSSProperties } from "react";
+import { memo, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   Butterfly,
   CoffeeStain,
@@ -30,7 +30,10 @@ const drawStyle = (delay: number, duration = 700): CSSProperties =>
 const GridLayer = memo(function GridLayer({ geom, art, animate }: { geom: BoardGeom; art: BoardArt; animate: boolean }) {
   const proj = (pts: FlatPt[]) => smoothPath(pts.map(geom.toScreen));
   return (
-    <g filter="url(#doodle-pencil)" strokeLinecap="round" fill="none">
+    // No pencil filter here: the lines already wobble (art.ts), side by side the filter was invisible,
+    // and as one filter over the whole board it made iPhones re-filter the grid on every frame of
+    // the lines drawing in (the intro ran at ~16 fps).
+    <g strokeLinecap="round" fill="none">
       {art.lines.map((l, i) => (
         <g key={i}>
           <path
@@ -174,18 +177,41 @@ const PieceLayer = memo(function PieceLayer({
   animate: boolean;
   activeSnake: number | null;
 }) {
+  // Snakes and ladders spring up without their crayon / pencil filters: re-running the filters on
+  // every frame of the springs (up to six pieces at once) ran iPhones at ~6-10 fps, and a settled,
+  // filtered piece next to one still springing was re-filtered just the same. Once the last snake
+  // has settled the filters come back one piece per frame, never all at once (that one frame took
+  // ~220 ms). Measured in WebKit (iPhone 13): worst intro frame 190 -> ~55 ms.
+  const total = art.ladders.length + art.snakes.length;
+  const [settled, setSettled] = useState<ReadonlySet<number>>(() => new Set());
+  const [lit, setLit] = useState(animate ? 0 : total);
+  const allSettled = settled.size >= art.snakes.length;
+  useEffect(() => {
+    if (!allSettled || lit >= total) return;
+    const frame = requestAnimationFrame(() => setLit((n) => n + 1));
+    return () => cancelAnimationFrame(frame);
+  }, [allSettled, lit, total]);
+  // piece k (ladders first, then snakes) is drawn plain until its filter comes back
+  const plain = (k: number) => (k >= lit ? "popping" : "");
   return (
     <g>
       {art.ladders.map((l, i) => (
-        <g key={`l${l.from}`} className={animate ? "pop-up" : undefined} style={animate ? { animationDelay: `${i * 90}ms` } : undefined}>
+        <g
+          key={`l${l.from}`}
+          className={[animate ? "pop-up" : "", plain(i)].join(" ")}
+          style={animate ? { animationDelay: `${i * 90}ms` } : undefined}
+        >
           <LadderShape geom={geom} ladder={l} animate={animate} index={i} />
         </g>
       ))}
       {art.snakes.map((s, i) => (
         <g
           key={`s${s.from}`}
-          className={[animate ? "pop-up" : "", activeSnake === i ? "snake-gulp" : ""].join(" ")}
+          className={[animate ? "pop-up" : "", plain(art.ladders.length + i), activeSnake === i ? "snake-gulp" : ""].join(" ")}
           style={animate ? { animationDelay: `${300 + i * 110}ms` } : undefined}
+          onAnimationEnd={(e) => {
+            if (e.target === e.currentTarget && e.animationName === "pop-up") setSettled((done) => new Set(done).add(i));
+          }}
         >
           <SnakeBody geom={geom} snake={s} />
           {activeSnake !== i && <SnakeHead pose={headPose(geom, s)} kind={kindOf(s.style)} mood="idle" unit={geom.unit} />}

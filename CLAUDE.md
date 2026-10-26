@@ -68,6 +68,14 @@ something, it lives in `apps/web` or `packages/ui-doodle`.
   while `busy` (`.sheet-wrap.busy` in `styles.css`). New looping decorations join that list.
   The sheet is two stacked SVGs: the still board (memoized `BoardView`) and `.sheet-moving` for
   tokens, trail, swallow, dice and notes. Anything that changes every frame goes in the moving one.
+- The same applies to the intro: animating something inside a filtered group re-runs the filter
+  every frame. The grid has no pencil filter (it was invisible, and as one board-wide filter it ran
+  the intro at ~16 fps on iPhones); snakes and ladders spring up plain (`.popping`) and get their
+  filters back one piece per frame after the last one settles (`PieceLayer`). Intro in WebKit:
+  ~58 -> ~19 ms per frame, worst frame 206 -> ~70 ms.
+- The game server answers a missing file with 404 and only extensionless page paths with
+  `index.html` (`static.ts`): iOS probes `/apple-touch-icon.png`, and an HTML page there left the
+  home-screen icon blank. A copy of the icon also sits at `/apple-touch-icon.png`.
 - Pacing: every animation timing lives in `PACE` in `apps/web/src/store.ts`. Tune there, not inline.
 - Snakes: `board/snakeKinds.ts` maps a board snake's `style` to a kind (colour, pattern, head shape,
   accessory, tail, thickness). `board/Snake.tsx` draws bodies, heads and the swallow (`MealLayer`,

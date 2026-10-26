@@ -75,6 +75,8 @@
   35% { opacity: 1; }
   to { transform: none; opacity: 1; }
 }
+/* while a piece springs up it is drawn without its crayon filter (see PieceLayer) */
+.popping[filter], .popping [filter] { filter: none; }
 .pop-up { transform-box: fill-box; transform-origin: 50% 100%; animation: pop-up 620ms cubic-bezier(.3,1.7,.5,1) backwards; }
 @keyframes pop-up {
   from { transform: scale(0.15, 0.05); opacity: 0; }
