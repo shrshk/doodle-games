@@ -66,6 +66,23 @@ function ready(): AudioContext | null {
   return ctx;
 }
 
+/**
+ * Run `play` as soon as audio is running. The first tap of a visit both unlocks audio and starts the
+ * game, so the intro begins while iOS is still waking the context (`ready()` would drop every note):
+ * wait for the resume, but give up after a moment so the music never lands out of step.
+ */
+function whenRunning(play: () => void, maxWaitMs = 600) {
+  if (!ctx || muted) return;
+  if (ctx.state === "running") return play();
+  const t0 = performance.now();
+  ctx
+    .resume()
+    .then(() => {
+      if (performance.now() - t0 <= maxWaitMs) play();
+    })
+    .catch(() => undefined);
+}
+
 interface ToneOpts {
   type?: OscillatorType;
   gain?: number;
@@ -180,6 +197,26 @@ const INTRO_TUNE = {
   home: 3.3,
 };
 
+function playIntroTune() {
+  const { step, chords, home } = INTRO_TUNE;
+  const bar = step * 4;
+  chords.forEach((ch, i) => {
+    const at = i * bar;
+    ch.pad.forEach((f) => {
+      held(f, bar + 0.35, { delay: at, gain: 0.022, detune: -6 });
+      held(f, bar + 0.35, { delay: at, gain: 0.018, detune: 7, type: "sine" });
+    });
+    tone(ch.bass, 0.5, { type: "sine", gain: 0.07, delay: at, attack: 0.01 });
+    tone(ch.bass * 1.5, 0.3, { type: "sine", gain: 0.03, delay: at + bar / 2, attack: 0.01 });
+    ch.arp.forEach((f, k) => pluck(f, at + k * step, k === 0 ? 0.08 : 0.06));
+  });
+  // home: the C chord rings out, a quick bell run on top, a few sparkles as the tokens appear
+  [261.6, 329.6, 392, 523.3].forEach((f) => held(f, 1.3, { delay: home, gain: 0.024, attack: 0.05, release: 1 }));
+  tone(130.8, 0.9, { type: "sine", gain: 0.08, delay: home, attack: 0.01 });
+  [1046.5, 1318.5, 1568, 2093].forEach((f, k) => pluck(f, home + k * 0.07, 0.06, 1.1));
+  for (let k = 0; k < 4; k++) tone(2400 + Math.random() * 1400, 0.15, { type: "sine", gain: 0.018, delay: home + 0.35 + k * 0.1 });
+}
+
 // C major pentatonic, two octaves: ladders climb up it
 const PENTA = [523.3, 587.3, 659.3, 784, 880, 1046.5, 1174.7, 1318.5, 1568, 1760];
 
@@ -214,29 +251,15 @@ export const sfx = {
 
   /** a paper sheet unfolding off the desk, then a soft pop as the board lands upright */
   unfold() {
-    noise(0.55, { freq: 700, q: 0.6, gain: 0.09, to: 3200 });
-    tone(140, 0.18, { type: "sine", gain: 0.1, to: 90, delay: 0.5 });
+    whenRunning(() => {
+      noise(0.55, { freq: 700, q: 0.6, gain: 0.09, to: 3200 });
+      tone(140, 0.18, { type: "sine", gain: 0.1, to: 90, delay: 0.5 });
+    });
   },
 
   /** the music-box tune that plays while the board draws itself in */
   introMusic() {
-    const { step, chords, home } = INTRO_TUNE;
-    const bar = step * 4;
-    chords.forEach((ch, i) => {
-      const at = i * bar;
-      ch.pad.forEach((f) => {
-        held(f, bar + 0.35, { delay: at, gain: 0.022, detune: -6 });
-        held(f, bar + 0.35, { delay: at, gain: 0.018, detune: 7, type: "sine" });
-      });
-      tone(ch.bass, 0.5, { type: "sine", gain: 0.07, delay: at, attack: 0.01 });
-      tone(ch.bass * 1.5, 0.3, { type: "sine", gain: 0.03, delay: at + bar / 2, attack: 0.01 });
-      ch.arp.forEach((f, k) => pluck(f, at + k * step, k === 0 ? 0.08 : 0.06));
-    });
-    // home: the C chord rings out, a quick bell run on top, a few sparkles as the tokens appear
-    [261.6, 329.6, 392, 523.3].forEach((f) => held(f, 1.3, { delay: home, gain: 0.024, attack: 0.05, release: 1 }));
-    tone(130.8, 0.9, { type: "sine", gain: 0.08, delay: home, attack: 0.01 });
-    [1046.5, 1318.5, 1568, 2093].forEach((f, k) => pluck(f, home + k * 0.07, 0.06, 1.1));
-    for (let k = 0; k < 4; k++) tone(2400 + Math.random() * 1400, 0.15, { type: "sine", gain: 0.018, delay: home + 0.35 + k * 0.1 });
+    whenRunning(playIntroTune);
   },
 
   /** soft springy hop; rises a little each square */
