@@ -46,8 +46,9 @@ Check: `curl http://127.0.0.1:2567/__healthcheck` prints `OK`, and http://127.0.
 Bind to 127.0.0.1 when a tunnel or reverse proxy sits in front. Bind to 0.0.0.0 only for testing on
 the LAN (`http://<air-name>.local:2567`).
 
-Keep the Air awake on power: `sudo pmset -c sleep 0 disksleep 0` (and `displaysleep` as you like).
-With the lid closed, macOS sleeps unless an external display is connected. Check that before relying on it.
+Keep the Air awake: the launchd agent wraps the server in `caffeinate -is` (no admin needed; see
+"Set up" below). `sudo pmset -c sleep 0 disksleep 0` is the admin alternative. With the lid closed,
+macOS sleeps unless it is on power with an external display connected.
 
 ## 2. Put it on games.shirishve.com
 
@@ -105,8 +106,16 @@ same origin it was loaded from, so no client configuration is needed for any of 
 ## Set up (done 2026-10-24)
 
 Node 22.20.0 in `~/.local/node`, the repo in `~/apps/snakes_and_ladders`, and the launchd agent
-`~/Library/LaunchAgents/com.shirishve.snakes.plist` (runs `apps/server/dist/index.js` on 0.0.0.0:2567,
-KeepAlive, logs to `~/Library/Logs/snakes-doodle.log`). On the LAN: `http://shirishs-m2.local:2567`.
+`~/Library/LaunchAgents/com.shirishve.snakes.plist` (runs `/usr/bin/caffeinate -is node
+apps/server/dist/index.js` on 0.0.0.0:2567, KeepAlive, logs to `~/Library/Logs/snakes-doodle.log`).
+On the LAN: `http://shirishs-m2.local:2567`.
+
+`caffeinate -is` keeps the Air awake for as long as the server runs, with no admin password. Without
+it the Air went into "Maintenance Sleep" a minute after going idle and woke only ~10 s at a time for
+network traffic: a phone got the page in one wake and the script never arrived (a blank white
+screen). Check with `pmset -g assertions` (a caffeinate line naming the node process). With the lid
+closed macOS still sleeps unless it is on power with an external display; `sudo pmset -c sleep 0`
+(admin) also stops the idle sleep for good.
 
 Update from the M1 Max in one go:
 
