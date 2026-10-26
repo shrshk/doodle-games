@@ -36,7 +36,7 @@ jobs:
         if: failure()
         with:
           name: playwright-traces
-          path: test-results/
+          path: games/snakes-and-ladders/test-results/
           retention-days: 7
 
   image:

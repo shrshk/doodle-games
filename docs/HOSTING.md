@@ -1,4 +1,7 @@
-# Hosting — handoff for the MacBook Air
+# Hosting — the MacBook Air
+
+Today this serves Snakes & Ladders (`games/snakes-and-ladders`). Each new game gets its own server
+and port until they share one; record it here.
 
 Goal: the owner's spare MacBook Air serves the game at **https://games.shirishve.com**, with online
 play. This file is the brief for the agent doing that setup on the Air. The domain and DNS live in
@@ -28,7 +31,7 @@ password is Node 22 from the official arm64 tarball, unpacked into `~/.local/nod
 ## 1. Get it running on the Air
 
 ```sh
-git clone https://github.com/shrshk/snakes_and_ladders.git && cd snakes_and_ladders
+git clone https://github.com/shrshk/doodle-games.git && cd doodle-games
 ```
 
 Pick one:
@@ -39,7 +42,7 @@ Pick one:
   `pnpm install --frozen-lockfile && pnpm build && PORT=2567 HOST=127.0.0.1 pnpm start`,
   kept alive by a launchd agent (`~/Library/LaunchAgents/com.shirishve.snakes.plist` with
   `KeepAlive`, `RunAtLoad`, `WorkingDirectory` set to the clone, and `ProgramArguments` running
-  `node apps/server/dist/index.js`). Use the absolute path to `node`, because launchd has no shell PATH.
+  `node games/snakes-and-ladders/apps/server/dist/index.js`). Use the absolute path to `node`, because launchd has no shell PATH.
 
 Check: `curl http://127.0.0.1:2567/__healthcheck` prints `OK`, and http://127.0.0.1:2567 shows the game.
 
@@ -105,9 +108,9 @@ same origin it was loaded from, so no client configuration is needed for any of 
 
 ## Set up (done 2026-10-24)
 
-Node 22.20.0 in `~/.local/node`, the repo in `~/apps/snakes_and_ladders`, and the launchd agent
+Node 22.20.0 in `~/.local/node`, the repo in `~/apps/doodle-games`, and the launchd agent
 `~/Library/LaunchAgents/com.shirishve.snakes.plist` (runs `/usr/bin/caffeinate -is node
-apps/server/dist/index.js` on 0.0.0.0:2567, KeepAlive, logs to `~/Library/Logs/snakes-doodle.log`).
+games/snakes-and-ladders/apps/server/dist/index.js` on 0.0.0.0:2567, KeepAlive, logs to `~/Library/Logs/snakes-doodle.log`).
 On the LAN: `http://shirishs-m2.local:2567`.
 
 `caffeinate -is` keeps the Air awake for as long as the server runs, with no admin password. Without
@@ -120,7 +123,7 @@ closed macOS still sleeps unless it is on power with an external display; `sudo 
 Update from the M1 Max in one go:
 
 ```sh
-ssh -i ~/.ssh/id_ed25519_air shrshk7@Shirishs-M2.local 'export PATH=$HOME/.local/node/bin:$PATH; cd ~/apps/snakes_and_ladders && git pull -q && pnpm install --frozen-lockfile && pnpm build && launchctl kickstart -k gui/$(id -u)/com.shirishve.snakes'
+ssh -i ~/.ssh/id_ed25519_air shrshk7@Shirishs-M2.local 'export PATH=$HOME/.local/node/bin:$PATH; cd ~/apps/doodle-games && git pull -q && pnpm install --frozen-lockfile && pnpm build && launchctl kickstart -k gui/$(id -u)/com.shirishve.snakes'
 ```
 
 ## 4. Updating

@@ -18,7 +18,7 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
 
-  apps/server:
+  games/snakes-and-ladders/apps/server:
     dependencies:
       '@colyseus/core':
         specifier: 0.18.18
@@ -61,11 +61,14 @@ importers:
         specifier: 2.1.9
         version: 2.1.9(@types/node@22.10.2)
 
-  apps/web:
+  games/snakes-and-ladders/apps/web:
     dependencies:
       '@colyseus/sdk':
         specifier: 0.18.5
         version: 0.18.5(@colyseus/core@0.18.18)(typescript@5.6.3)
+      '@doodle-games/ui-doodle':
+        specifier: workspace:*
+        version: link:../../../../packages/ui-doodle
       '@snakes-doodle/boards':
         specifier: workspace:*
         version: link:../../packages/boards
@@ -75,9 +78,6 @@ importers:
       '@snakes-doodle/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
-      '@snakes-doodle/ui-doodle':
-        specifier: workspace:*
-        version: link:../../packages/ui-doodle
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -107,7 +107,7 @@ importers:
         specifier: 2.1.9
         version: 2.1.9(@types/node@22.10.2)
 
-  packages/boards:
+  games/snakes-and-ladders/packages/boards:
     dependencies:
       zod:
         specifier: 3.25.76
@@ -120,7 +120,7 @@ importers:
         specifier: 2.1.9
         version: 2.1.9(@types/node@22.10.2)
 
-  packages/engine:
+  games/snakes-and-ladders/packages/engine:
     dependencies:
       '@snakes-doodle/boards':
         specifier: workspace:*
@@ -136,7 +136,7 @@ importers:
         specifier: 2.1.9
         version: 2.1.9(@types/node@22.10.2)
 
-  packages/protocol:
+  games/snakes-and-ladders/packages/protocol:
     dependencies:
       '@snakes-doodle/boards':
         specifier: workspace:*

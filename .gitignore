@@ -4,7 +4,7 @@ dist/
 *.log
 .DS_Store
 coverage/
-exports/*
-!exports/boards-a4.pdf
+games/snakes-and-ladders/exports/*
+!games/snakes-and-ladders/exports/boards-a4.pdf
 test-results/
 playwright-report/

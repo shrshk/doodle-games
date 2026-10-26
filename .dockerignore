@@ -2,7 +2,7 @@
 **/dist
 .turbo
 .git
-exports
+games/snakes-and-ladders/exports
 test-results
 playwright-report
 docs/reference
