@@ -11,7 +11,10 @@ COPY games/snakes-and-ladders/apps/server/package.json games/snakes-and-ladders/
 COPY games/snakes-and-ladders/packages/engine/package.json games/snakes-and-ladders/packages/engine/
 COPY games/snakes-and-ladders/packages/boards/package.json games/snakes-and-ladders/packages/boards/
 COPY games/snakes-and-ladders/packages/protocol/package.json games/snakes-and-ladders/packages/protocol/
+COPY games/ludo/apps/web/package.json games/ludo/apps/web/
+COPY games/ludo/packages/engine/package.json games/ludo/packages/engine/
 COPY packages/ui-doodle/package.json packages/ui-doodle/
+COPY packages/doodle-sound/package.json packages/doodle-sound/
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build

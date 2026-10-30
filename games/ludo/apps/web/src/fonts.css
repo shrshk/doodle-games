@@ -1,0 +1,23 @@
+/* Handwriting fonts, bundled so the game works offline and prints without network access.
+   All three are SIL Open Font License 1.1 (see public/fonts/LICENSE.md). Latin subset only. */
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/caveat.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Gochi Hand";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/gochi-hand-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Patrick Hand";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/patrick-hand-400.woff2") format("woff2");
+}

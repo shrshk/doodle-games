@@ -4,10 +4,11 @@
   "packageManager": "pnpm@10.34.6",
   "scripts": {
     "dev": "turbo run dev --filter=@snakes-doodle/web",
+    "dev:ludo": "turbo run dev --filter=@ludo-doodle/web",
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint && node games/snakes-and-ladders/scripts/check-engine-purity.mjs",
+    "lint": "turbo run lint && node games/snakes-and-ladders/scripts/check-engine-purity.mjs games/snakes-and-ladders/packages/engine/src games/ludo/packages/engine/src",
     "balance": "pnpm --filter @snakes-doodle/engine balance",
     "print:boards": "pnpm --filter @snakes-doodle/web print:boards",
     "e2e": "playwright test -c games/snakes-and-ladders/playwright.config.ts",

@@ -1,9 +1,11 @@
 // The engine must stay pure so client and server replay identically.
-// Fails if packages/engine/src (tests excluded) touches randomness, time, DOM or IO.
+// Fails if an engine's src (tests excluded) touches randomness, time, DOM or IO. Checks the engine
+// directories given as arguments (relative to the repo root), or Snakes & Ladders' by default.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-const root = new URL("../packages/engine/src", import.meta.url).pathname;
+const repo = new URL("../../..", import.meta.url).pathname;
+const roots = process.argv.length > 2 ? process.argv.slice(2).map((d) => join(repo, d)) : [new URL("../packages/engine/src", import.meta.url).pathname];
 const banned = [
   /\bMath\.random\b/,
   /\bDate\b/,
@@ -22,7 +24,7 @@ const walk = (dir) => {
     else if (p.endsWith(".ts") && !p.endsWith(".test.ts")) files.push(p);
   }
 };
-walk(root);
+roots.forEach(walk);
 
 let failed = false;
 for (const file of files) {
