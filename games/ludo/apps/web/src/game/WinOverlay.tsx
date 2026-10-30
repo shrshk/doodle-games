@@ -4,7 +4,7 @@ import { palette, Star, Token, type TokenColor } from "@doodle-games/ui-doodle";
 import { useGame } from "../store";
 
 export function WinOverlay() {
-  const { game, startGame, goHome, reducedMotion } = useGame();
+  const { game, startGame, goHome, reducedMotion, online, sendOnline } = useGame();
   const confetti = useMemo(
     () =>
       Array.from({ length: 26 }, (_, i) => ({
@@ -20,9 +20,10 @@ export function WinOverlay() {
   const winner = game.players.find((p) => p.finishedPlace === 1);
   if (!winner) return null;
   const others = game.players.filter((p) => p.id !== winner.id).sort((a, b) => (a.finishedPlace ?? 9) - (b.finishedPlace ?? 9));
-  // with one person against bots, the person's win is "you win"
+  // online only the winner's own tab says "you"; locally, one person against bots does
   const people = game.players.filter((p) => !p.isBot).length;
-  const headline = people === 1 && !winner.isBot ? "you win!" : `${winner.name} wins!`;
+  const isMe = online ? winner.id === online.me : people === 1 && !winner.isBot;
+  const headline = isMe ? "you win!" : `${winner.name} wins!`;
 
   return (
     <div className="win" role="dialog" aria-modal="true" aria-labelledby="win-title">
@@ -78,11 +79,11 @@ export function WinOverlay() {
           </p>
         )}
         <div className="win-actions">
-          <button className="slip-button" onClick={startGame} autoFocus>
-            again?
+          <button className="slip-button" onClick={online ? () => sendOnline("lobby") : startGame} autoFocus>
+            {online ? "back to the room" : "again?"}
           </button>
           <button className="slip-button ghost" onClick={goHome}>
-            home
+            {online ? "leave" : "home"}
           </button>
         </div>
       </div>

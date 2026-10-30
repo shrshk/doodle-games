@@ -1,11 +1,20 @@
 import { create } from "zustand";
-import { BASE, botMove, createGame, HOME, reduce, type GameEvent, type GameState, type PlayerState, type RuleSet } from "@ludo-doodle/engine";
-import { characterName, TOWER_HITS, TOWER_MS, type Mood } from "@doodle-games/ui-doodle";
+import { CloseCode } from "@colyseus/sdk";
+import { BASE, botMove, createGame, HOME, onlyChoice, reduce, type GameEvent, type GameState, type PlayerState, type RuleSet } from "@ludo-doodle/engine";
+import { PACE, type PublicGame, type Reaction, type ReactionMessage, type RoomView, type StartedMessage, type StepMessage } from "@ludo-doodle/protocol";
+import { characterName, TOWER_HITS, type Mood } from "@doodle-games/ui-doodle";
 import { progressPoint, type Pt } from "./board/geometry";
+import { createRoom, describeError, forgetRoom, joinRoom, rememberRoom, resumeRoom, type GameRoom } from "./net/online";
 import { loadSetup, saveSetup, type Slot } from "./setup";
 import { isMuted, setMuted, sfx } from "./sound";
 
 export type { Slot, SlotKind } from "./setup";
+
+/**
+ * Every timing in one place (ms), shared with the online server so it knows how long a step plays
+ * on screen. Reduced motion skips tweens and caps waits.
+ */
+export { PACE };
 
 export interface Note {
   id: number;
@@ -24,26 +33,6 @@ export interface Moving {
   squash: number;
 }
 
-/** Every timing in one place (ms). Reduced motion skips tweens and caps waits. */
-export const PACE = {
-  diceTumble: TOWER_MS,
-  afterDice: 350,
-  /** one movable token: it goes by itself after this */
-  autoMove: 350,
-  hopPerSquare: 240,
-  afterLanding: 260,
-  enter: 560,
-  cutFly: 800,
-  home: 700,
-  noMove: 1000,
-  extraTurn: 750,
-  handoff: 950,
-  beforeWin: 700,
-  botThinkMin: 700,
-  botThinkMax: 1200,
-  botPick: 650,
-} as const;
-
 interface ViewState {
   /** each player's tokens as drawn, which trails the engine while a move plays */
   display: Record<string, number[]>;
@@ -59,10 +48,28 @@ interface ViewState {
   announcement: string;
   /** bumps after every roll and move, so effects keyed on it re-run */
   turnNo: number;
+  /** online quick reactions on show, by player; `key` restarts the pop when the same word repeats */
+  reactions: Record<string, { reaction: Reaction; key: number }>;
 }
 
+/** A room on the game server: the synced room state plus this tab's view of the turn clock. */
+export interface OnlineState {
+  status: "idle" | "connecting" | "in-room" | "reconnecting";
+  view: RoomView | null;
+  /** this tab's player (session) id */
+  me: string;
+  error: string;
+  /** local Date.now() ms when this tab may roll or pick next, and when the timer runs out (0 = none) */
+  actOpensAt: number;
+  deadline: number;
+  /** a roll or pick is on its way to the server */
+  actSent: boolean;
+}
+
+export type OnlineMessage = "seat" | "name" | "addBot" | "removeBot" | "start" | "lobby";
+
 interface Store extends ViewState {
-  screen: "home" | "game";
+  screen: "home" | "game" | "online";
   slots: Slot[];
   rules: RuleSet;
   game: GameState | null;
@@ -78,36 +85,43 @@ interface Store extends ViewState {
   setIntroDone(): void;
   startGame(): void;
   goHome(): void;
-  /** rolls for whoever's turn it is (the screen only offers it to people, and rolls for bots itself) */
+  /** rolls for whoever's turn it is (locally the screen also rolls for bots; online, the server does) */
   roll(): void;
   /** a person picks which of their tokens to move */
   pick(token: number): void;
+  online: OnlineState | null;
+  /** the online page, not yet in a room */
+  openOnline(): void;
+  hostOnline(name: string): Promise<void>;
+  joinOnline(code: string, name: string): Promise<void>;
+  /** back into the room a refresh left, if any; true when it worked */
+  resumeOnline(): Promise<boolean>;
+  leaveOnline(): void;
+  sendOnline(type: OnlineMessage, payload?: object): void;
+  react(reaction: Reaction): void;
 }
 
 const current = (g: GameState) => g.players.find((p) => p.id === g.turn.playerId)!;
 
-/** Whether a person at this device may roll right now. */
-export function canRollNow(s: Pick<Store, "game" | "busy" | "introDone">): boolean {
+type ActState = Pick<Store, "game" | "busy" | "introDone" | "online">;
+
+/** Whether this tab may act for the current player: locally any person, online only its own seat once the server opens it. */
+function mayAct(s: ActState, now: number): boolean {
   const g = s.game;
-  if (!g || s.busy || !s.introDone || g.turn.phase !== "awaitingRoll") return false;
-  return !current(g).isBot;
+  if (!g || s.busy || !s.introDone) return false;
+  const me = current(g);
+  if (!s.online) return !me.isBot;
+  return me.id === s.online.me && !s.online.actSent && now >= s.online.actOpensAt;
+}
+
+/** Whether a person at this device may roll right now. */
+export function canRollNow(s: ActState, now = Date.now()): boolean {
+  return s.game?.turn.phase === "awaitingRoll" && mayAct(s, now);
 }
 
 /** The tokens a person at this device may tap right now (empty when it is not their pick). */
-export function pickable(s: Pick<Store, "game" | "busy">): number[] {
-  const g = s.game;
-  if (!g || s.busy || g.turn.phase !== "awaitingMove" || current(g).isBot) return [];
-  return g.turn.movable;
-}
-
-/**
- * The token to move without asking, or null when the choice matters. Ludo King moves by itself
- * when only one token can move; tokens sharing a square (or all still in the base) are one choice.
- */
-export function onlyChoice(g: GameState): number | null {
-  const me = current(g);
-  const spots = new Set(g.turn.movable.map((i) => me.tokens[i]));
-  return spots.size === 1 ? g.turn.movable[0]! : null;
+export function pickable(s: ActState, now = Date.now()): number[] {
+  return s.game?.turn.phase === "awaitingMove" && mayAct(s, now) ? s.game.turn.movable : [];
 }
 
 const freshView = (): ViewState => ({
@@ -121,15 +135,37 @@ const freshView = (): ViewState => ({
   showWin: false,
   announcement: "",
   turnNo: 0,
+  reactions: {},
 });
 
 const tokensOf = (g: GameState) => Object.fromEntries(g.players.map((p) => [p.id, [...p.tokens]]));
 
 const randomSeed = () => crypto.getRandomValues(new Uint32Array(1))[0]!;
 
+/** An online state as an engine state: the server keeps the RNG and log, nothing here needs them. */
+const fromPublic = (g: PublicGame): GameState => ({ ...g, rng: { seed: 0, cursor: 0 }, log: [] });
+
 /** Bumped whenever a game starts or ends, so in-flight animations from the old game stop. */
 let generation = 0;
 let noteId = 0;
+/** how long a reaction bubble stays up */
+const REACTION_SHOW_MS = 2600;
+
+/** The open room lives outside the store: it is a connection, not state to render. */
+let room: GameRoom | null = null;
+/** Steps from the server wait here and play one at a time, at the client's own pace. */
+let stepQueue: { msg: StepMessage; at: number }[] = [];
+let draining = false;
+let lastSeq = 0;
+let resuming: Promise<boolean> | null = null;
+/** after a reconnect, rebuild the board from the room state: steps may have happened meanwhile */
+let resyncPending = false;
+/** removes the wake-up listeners of the current room */
+let stopWakeCheck: () => void = () => undefined;
+/** counts reconnects, so a wake-up ping sent on a socket that has since been replaced is ignored */
+let reconnects = 0;
+/** a ping that gets no answer this fast means the socket died while the app was in the background */
+const WAKE_PING_MS = 1500;
 
 export const useGame = create<Store>((set, get) => {
   const live = (gen: number) => gen === generation;
@@ -226,9 +262,13 @@ export const useGame = create<Store>((set, get) => {
     const g = get().game!;
     const byId = (id: string) => g.players.find((p) => p.id === id)!;
     const said: string[] = [];
+    let afterRoll = false;
 
     for (const e of events) {
       if (!live(gen)) return;
+      // online, a roll with only one move arrives with that move: give it the same pause as locally
+      if (afterRoll && (e.type === "ENTERED" || e.type === "MOVED")) await wait(PACE.autoMove);
+      afterRoll = e.type === "ROLLED";
       switch (e.type) {
         case "ROLLED":
           if (reduced()) set((s) => ({ dice: { value: e.value, rolling: false, rollId: s.dice.rollId + 1 } }));
@@ -317,7 +357,7 @@ export const useGame = create<Store>((set, get) => {
       });
   }
 
-  /** After a roll with moves: bots pick, a lone choice goes by itself, people tap a token. */
+  /** After a local roll with moves: bots pick, a lone choice goes by itself, people tap a token. */
   async function awaitPick(g: GameState, gen: number) {
     const me = current(g);
     if (me.isBot) {
@@ -332,9 +372,13 @@ export const useGame = create<Store>((set, get) => {
       if (live(gen)) move(only);
       return;
     }
+    askToPick(gen);
+  }
+
+  function askToPick(gen: number) {
     sfx.choose();
     note("pick a token", "ink", gen, 1300);
-    set({ busy: false, turnNo: get().turnNo + 1 });
+    set((s) => ({ busy: false, turnNo: s.turnNo + 1 }));
   }
 
   function move(token: number) {
@@ -393,7 +437,11 @@ export const useGame = create<Store>((set, get) => {
 
     setReducedMotion: (on) => set({ reducedMotion: on }),
 
-    setIntroDone: () => set({ introDone: true }),
+    setIntroDone: () => {
+      set({ introDone: true });
+      // the first server step may have arrived while the board was still drawing itself in
+      void drain();
+    },
 
     startGame: () => {
       generation++;
@@ -413,6 +461,7 @@ export const useGame = create<Store>((set, get) => {
     },
 
     goHome: () => {
+      if (get().online) return get().leaveOnline();
       generation++;
       set({ ...freshView(), screen: "home", game: null });
     },
@@ -421,15 +470,270 @@ export const useGame = create<Store>((set, get) => {
       const s = get();
       const g = s.game;
       if (!g || s.busy || !s.introDone || g.turn.phase !== "awaitingRoll") return;
+      if (s.online) {
+        if (!canRollNow(s)) return;
+        // the server rolls; its step message comes back to every tab, this one included
+        room?.send("roll");
+        patchOnline({ actSent: true });
+        return;
+      }
       const result = reduce(g, { type: "ROLL", playerId: g.turn.playerId });
       if (result.error) return;
       run(g, result.state, result.events);
     },
 
     pick: (token) => {
-      if (!pickable(get()).includes(token)) return;
+      const s = get();
+      if (!pickable(s).includes(token)) return;
       sfx.tap();
+      if (s.online) {
+        room?.send("move", { token });
+        patchOnline({ actSent: true });
+        return;
+      }
       move(token);
     },
+
+    online: null,
+
+    openOnline: () => {
+      generation++;
+      set({ ...freshView(), screen: "online", game: null, online: { ...freshOnline(), error: get().online?.error ?? "" } });
+    },
+
+    hostOnline: async (name) => {
+      const { rules, slots } = get();
+      await connect(() => createRoom({ rules, name, seat: slots.find((sl) => sl.kind === "human")?.color }));
+    },
+
+    joinOnline: async (code, name) => {
+      await connect(() => joinRoom(code, { name }));
+    },
+
+    resumeOnline: () => {
+      // once at a time: a second try with the same token would fail and forget the room
+      // (React's dev StrictMode runs the startup effect twice)
+      if (room) return Promise.resolve(true);
+      resuming ??= resumeRoom()
+        .then((r) => {
+          if (!r) return false;
+          set({ screen: "online", online: { ...freshOnline(), status: "in-room" } });
+          attach(r);
+          return true;
+        })
+        .finally(() => (resuming = null));
+      return resuming;
+    },
+
+    leaveOnline: () => {
+      generation++;
+      const r = room;
+      room = null;
+      stopWakeCheck();
+      stepQueue = [];
+      forgetRoom();
+      void r?.leave(true).catch(() => undefined);
+      set({ ...freshView(), screen: "home", game: null, online: null });
+    },
+
+    sendOnline: (type, payload) => room?.send(type, payload ?? {}),
+
+    react: (reaction) => room?.send("react", { reaction }),
   };
+
+  function freshOnline(): OnlineState {
+    return { status: "idle", view: null, me: "", error: "", actOpensAt: 0, deadline: 0, actSent: false };
+  }
+
+  function patchOnline(patch: Partial<OnlineState>) {
+    const o = get().online;
+    if (o) set({ online: { ...o, ...patch } });
+  }
+
+  async function connect(open: () => Promise<GameRoom>) {
+    patchOnline({ status: "connecting", error: "" });
+    try {
+      attach(await open());
+    } catch (err) {
+      console.error("room_connect_failed", err);
+      patchOnline({ status: "idle", error: describeError(err) });
+    }
+  }
+
+  function attach(r: GameRoom) {
+    // one room per tab: a second open (a double click, a stale join) replaces the first
+    if (room && room !== r) {
+      room.removeAllListeners();
+      void room.leave(true).catch(() => undefined);
+    }
+    room = r;
+    stepQueue = [];
+    lastSeq = 0;
+    rememberRoom(r);
+    watchForWake(r);
+    if (import.meta.env.DEV) (window as unknown as { __room: GameRoom }).__room = r;
+    patchOnline({ status: "in-room", me: r.sessionId, error: "" });
+    r.onStateChange((state) => {
+      if (room !== r) return;
+      const view = state.toJSON();
+      patchOnline({ view });
+      route(view);
+    });
+    r.onMessage("started", (msg: StartedMessage) => room === r && enterGame(fromPublic(msg.game), msg.seq, Date.now() + msg.actInMs));
+    r.onMessage("step", (msg: StepMessage) => {
+      if (room !== r) return;
+      stepQueue.push({ msg, at: Date.now() });
+      void drain();
+    });
+    r.onMessage("reaction", (msg: ReactionMessage) => {
+      if (room !== r) return;
+      const key = ++noteId;
+      set((st) => ({ reactions: { ...st.reactions, [msg.playerId]: { reaction: msg.reaction, key } } }));
+      sfx.tap();
+      later(REACTION_SHOW_MS, generation, () =>
+        set((st) => {
+          if (st.reactions[msg.playerId]?.key !== key) return {};
+          const { [msg.playerId]: _gone, ...rest } = st.reactions;
+          return { reactions: rest };
+        }),
+      );
+    });
+    r.onDrop(() => room === r && patchOnline({ status: "reconnecting" }));
+    r.onReconnect(() => {
+      if (room !== r) return;
+      rememberRoom(r);
+      reconnects++;
+      resyncPending = true;
+      patchOnline({ status: "in-room" });
+    });
+    r.onLeave(() => {
+      if (room !== r) return;
+      // the server closed the room, or the seat's reconnection window ran out
+      room = null;
+      stopWakeCheck();
+      forgetRoom();
+      generation++;
+      set({ ...freshView(), screen: "online", game: null, online: { ...freshOnline(), error: "the room closed" } });
+    });
+  }
+
+  /**
+   * iOS freezes a backgrounded PWA (the share sheet is enough) and its socket can die without a
+   * close event, so on return the page would sit on a stale room until a timeout minutes later.
+   * When the app comes back, or the network does, ping the room; no answer means the socket is
+   * dead, and closing it with MAY_TRY_RECONNECT starts the SDK's own reconnect into the same seat.
+   */
+  function watchForWake(r: GameRoom) {
+    stopWakeCheck();
+    const check = () => {
+      if (document.visibilityState !== "visible" || room !== r || !r.connection.isOpen) return;
+      let answered = false;
+      const sentAt = reconnects;
+      r.ping(() => (answered = true));
+      setTimeout(() => {
+        // the SDK may have noticed and reconnected by itself meanwhile: leave the new socket alone
+        if (answered || room !== r || !r.connection.isOpen || reconnects !== sentAt) return;
+        console.warn("room_wake_ping_unanswered");
+        patchOnline({ status: "reconnecting" });
+        r.connection.close(CloseCode.MAY_TRY_RECONNECT);
+      }, WAKE_PING_MS);
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("pageshow", check);
+    window.addEventListener("online", check);
+    stopWakeCheck = () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("pageshow", check);
+      window.removeEventListener("online", check);
+    };
+  }
+
+  /** The room's turn deadline on this tab's clock (0 = none). A function: code after the return is only hoisted. */
+  function deadlineFrom(view: RoomView) {
+    return view.turnDeadline ? Date.now() + Math.max(0, view.turnDeadline - Date.now()) : 0;
+  }
+
+  /** Back from a reconnect mid-game: put every token where the room says, drop half-played steps. */
+  function resync(view: RoomView) {
+    const game = fromPublic(JSON.parse(view.gameJson) as PublicGame);
+    generation++;
+    stepQueue = [];
+    set((st) => ({
+      ...freshView(),
+      game,
+      display: tokensOf(game),
+      dice: st.dice,
+      introDone: true,
+      showWin: view.phase === "finished",
+      online: st.online ? { ...st.online, actOpensAt: Date.now(), deadline: deadlineFrom(view), actSent: false } : st.online,
+    }));
+  }
+
+  /** Follow the room between its lobby and the board. */
+  function route(view: RoomView) {
+    const s = get();
+    if (resyncPending) {
+      resyncPending = false;
+      if (view.phase !== "lobby" && s.game && view.gameJson) return resync(view);
+    }
+    if (view.phase === "lobby" && s.screen !== "online") {
+      generation++;
+      set({ ...freshView(), screen: "online", game: null });
+    } else if (view.phase !== "lobby" && !s.game && view.gameJson) {
+      // back in mid-game (a refresh or a late join): there was no "started" message to build from
+      enterGame(fromPublic(JSON.parse(view.gameJson) as PublicGame), 0, Date.now(), deadlineFrom(view));
+      if (view.phase === "finished") set({ showWin: true });
+    }
+  }
+
+  function enterGame(game: GameState, seq: number, actOpensAt: number, deadlineIn?: number) {
+    const view = get().online?.view;
+    generation++;
+    stepQueue = [];
+    lastSeq = seq;
+    const deadline = deadlineIn ?? actOpensAt + (view?.turnSeconds ?? 20) * 1000;
+    set((st) => ({
+      ...freshView(),
+      screen: "game",
+      game,
+      gameNo: st.gameNo + 1,
+      introDone: false,
+      display: tokensOf(game),
+      online: st.online ? { ...st.online, actOpensAt, deadline, actSent: false } : st.online,
+    }));
+  }
+
+  /** Play queued server steps one after another; waits for the board intro to finish first. */
+  async function drain() {
+    if (draining || !get().introDone) return;
+    draining = true;
+    try {
+      while (stepQueue.length) {
+        const { msg, at } = stepQueue.shift()!;
+        if (msg.seq <= lastSeq) continue;
+        lastSeq = msg.seq;
+        const gen = generation;
+        const before = get().game;
+        if (!before) break;
+        const after = fromPublic(msg.game);
+        // as locally: the engine is ahead, and the drawn tokens catch up as the events play
+        set((s) => ({ busy: true, game: after, turnNo: s.turnNo + 1 }));
+        patchOnline({ actSent: false });
+        await play(msg.events, gen).catch((err: unknown) => console.error("event_playback_failed", err));
+        if (!live(gen)) break;
+        patchOnline({ actOpensAt: at + msg.actInMs, deadline: msg.deadlineInMs ? at + msg.deadlineInMs : 0 });
+        if (after.turn.phase === "awaitingMove") {
+          set({ game: after, display: tokensOf(after) });
+          if (current(after).id === get().online?.me) askToPick(gen);
+          else set({ busy: false });
+        } else await finishTurn(before.turn.playerId, after, gen);
+        if (!live(gen)) break;
+      }
+    } finally {
+      draining = false;
+    }
+  }
 });
+
+// Dev-only handle for driving the game from the browser console or e2e scripts.
+if (import.meta.env.DEV) (window as unknown as { __game: typeof useGame }).__game = useGame;

@@ -30,10 +30,28 @@ games/ludo/
   packages/engine   pure rules: createGame, reduce(state, action) -> { state, events }, legalMoves,
                     botMove; seeded RNG (no Math.random, Date, timers, DOM or IO)
   apps/web          Vite + React: the doodle board, tokens, dice tower, sounds, bots, PWA
-  apps/server       Colyseus room (phase 2), same shape as Snakes & Ladders'
+  packages/protocol room name, messages, the synced room view, step timings (PACE, stepPlaybackMs)
+  apps/server       Colyseus room "ludo": LudoRoom, standalone on :2568 for now
 ```
 
-Shared with every game: `packages/ui-doodle` (characters, dice tower, paper, filters, blink).
+Shared with every game: `packages/ui-doodle` (characters, dice tower, paper, filters, blink),
+`packages/doodle-sound` (sound effects) and `packages/doodle-rooms` (room codes unique across games,
+per-server abuse limits, names, reactions, static serving).
+
+## Online (phase 2)
+
+- A turn has two steps, each a server message (`step`): the roll, then the pick. A roll with only
+  one possible move (`onlyChoice` in the engine) carries that move in the same step, as Ludo King
+  moves by itself. Clients play steps back at their own pace; `stepPlaybackMs` tells the server
+  when the next roll or pick may come.
+- Each step gets the turn timer. When it runs out the server rolls for the player, or picks the
+  bot's move for them. Bots and players who are away are played for after a short pause.
+- The room syncs the public game (`gameJson`, no RNG) after every step, so a refresh or a
+  reconnect redraws the board from the room alone.
+- Run it: `pnpm --filter @ludo-doodle/web build && pnpm dev:ludo-server`, then
+  http://localhost:2568 (the server serves the page too). `pnpm e2e:ludo` plays two browsers.
+- For phase 3: the room is called "ludo" and Snakes & Ladders' is "game", and room codes are
+  already unique across games, so one server can define both rooms.
 
 ## Phases
 
@@ -55,3 +73,8 @@ Shared with every game: `packages/ui-doodle` (characters, dice tower, paper, fil
   WebKit, 30 s of 4-bot play: frame p95 12 ms on a 390 px phone at 3x, 13-29 ms on desktop at 2x.
   Two findings: the 16 resting tokens (each sticker-filtered) need a sheet of their own, and the
   Snakes-style wake-up bounce at the handover had to go (it repainted every resting token, p95 80 ms).
+- 2026-10-30: phase 2 done, not published (owner decides how it shares games.shirishve.com).
+  Server: 12 room tests, among them a whole game with a bot and a player who is away. Browser:
+  two-player e2e (room by link, reactions in lobby and game, refresh mid-game, picks, both screens
+  agree). Found on the way: a `const` after the store's `return` is never initialised (a refresh
+  mid-game crashed), and @colyseus/testing's boot() ignores its port for a ready-made Server.

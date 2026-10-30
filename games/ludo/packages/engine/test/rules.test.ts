@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BASE, HOME, createGame, reduce, trackSquare } from "../src";
+import { BASE, HOME, createGame, onlyChoice, reduce, trackSquare } from "../src";
 import { run, setup, tokensOf } from "./helpers";
 
 const roll = (playerId: string) => ({ type: "ROLL" as const, playerId });
@@ -173,5 +173,27 @@ describe("turns", () => {
       { type: "WON", playerId: "p0", place: 1 },
       { type: "GAME_OVER" },
     ]);
+  });
+});
+
+describe("onlyChoice", () => {
+  const rolled = (tokens: number[], value: number) =>
+    run(setup({ tokens: { p0: tokens }, rolls: [value] }), { type: "ROLL", playerId: "p0" }).state;
+
+  it("moves by itself when one token can move, or when every movable token sits on one square", () => {
+    expect(onlyChoice(rolled([10, BASE, BASE, BASE], 3))).toBe(0);
+    // all four in the base on a 6: bringing any of them out is the same move
+    expect(onlyChoice(rolled([BASE, BASE, BASE, BASE], 6))).toBe(0);
+    expect(onlyChoice(rolled([12, 12, HOME, HOME], 2))).toBe(0);
+  });
+
+  it("asks when the tokens that can move would end up in different places", () => {
+    expect(onlyChoice(rolled([10, 20, BASE, BASE], 3))).toBeNull();
+    // a 6 can bring a token out or move the one on the track
+    expect(onlyChoice(rolled([10, BASE, BASE, BASE], 6))).toBeNull();
+  });
+
+  it("is null outside the pick", () => {
+    expect(onlyChoice(setup({}))).toBeNull();
   });
 });

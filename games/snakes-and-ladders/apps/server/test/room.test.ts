@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { boot, type ColyseusTestServer } from "@colyseus/testing";
+import { ColyseusTestServer } from "@colyseus/testing";
 import { ROOM_NAME, isRoomCode, type ReactionMessage, type RoomView, type TurnMessage } from "@snakes-doodle/protocol";
 import { createGameServer } from "../src/app";
 import { DEFAULT_LIMITS, GameRoom, REAL_TIMING, resetRateLimits } from "../src/rooms/GameRoom";
@@ -14,7 +14,11 @@ const RELAXED = { joinsPerMinute: 10_000, maxRooms: 10_000, messagesPerSecond: 1
 beforeAll(async () => {
   GameRoom.timing = FAST;
   GameRoom.limits = RELAXED;
-  colyseus = await boot(createGameServer());
+  // a port of its own: both games' suites run at once, and boot() would always take 2568 (the Ludo
+  // dev server's port) for a ready-made Server, whatever port it is given
+  const server = createGameServer();
+  await server.listen(2578);
+  colyseus = new ColyseusTestServer(server);
 });
 afterAll(async () => {
   GameRoom.timing = REAL_TIMING;

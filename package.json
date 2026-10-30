@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "turbo run dev --filter=@snakes-doodle/web",
     "dev:ludo": "turbo run dev --filter=@ludo-doodle/web",
+    "dev:ludo-server": "pnpm --filter @ludo-doodle/server build && node games/ludo/apps/server/dist/index.js",
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint && node games/snakes-and-ladders/scripts/check-engine-purity.mjs games/snakes-and-ladders/packages/engine/src games/ludo/packages/engine/src",
     "balance": "pnpm --filter @snakes-doodle/engine balance",
     "print:boards": "pnpm --filter @snakes-doodle/web print:boards",
-    "e2e": "playwright test -c games/snakes-and-ladders/playwright.config.ts",
+    "e2e": "playwright test -c games/snakes-and-ladders/playwright.config.ts && playwright test -c games/ludo/playwright.config.ts",
+    "e2e:ludo": "playwright test -c games/ludo/playwright.config.ts",
     "start": "node games/snakes-and-ladders/apps/server/dist/index.js",
     "dev:server": "pnpm --filter @snakes-doodle/server dev"
   },

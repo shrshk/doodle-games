@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { palette, Speaker, tokenInk, type TokenColor, type TokenStage } from "@doodle-games/ui-doodle";
 import { BoardView } from "../board/BoardView";
 import { sfx } from "../sound";
 import { canRollNow, PACE, pickable, useGame } from "../store";
 import { DiceButton, Notes, Roster, TitleCard } from "./Hud";
+import { ReactionPicker, SheetBubble, SheetReactionButton } from "./Reactions";
 import { layoutFor } from "./layout";
 import { ActiveTokens, RestingTokens } from "./TokenLayer";
 import { useViewport } from "./useViewport";
@@ -27,6 +28,8 @@ export function GameScreen() {
   const viewport = useViewport();
   const layout = layoutFor(viewport.width, viewport.height);
   const [intro, setIntro] = useState(reducedMotion ? INTRO_DONE : 0);
+  const [reactAnchor, setReactAnchor] = useState<DOMRect | null>(null);
+  const closeReactions = useCallback(() => setReactAnchor(null), []);
 
   useEffect(() => {
     if (reducedMotion) {
@@ -46,12 +49,21 @@ export function GameScreen() {
     // runs once per mounted game
   }, []);
 
-  const current = game?.players.find((p) => p.id === game.turn.playerId);
-  const botToRoll = !!game && introDone && !s.busy && game.turn.phase === "awaitingRoll" && !!current?.isBot;
-  const humanCanRoll = canRollNow(s);
-  const picks = pickable(s);
+  const online = s.online;
+  // online, a roll or pick opens and the turn timer runs on the clock: tick while in a room
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!online) return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [!!online]);
 
-  // bots roll after a short, human-looking pause
+  const current = game?.players.find((p) => p.id === game.turn.playerId);
+  const botToRoll = !online && !!game && introDone && !s.busy && game.turn.phase === "awaitingRoll" && !!current?.isBot;
+  const humanCanRoll = canRollNow(s, now);
+  const picks = pickable(s, now);
+
+  // bots roll after a short, human-looking pause (online, the server rolls for them)
   useEffect(() => {
     if (!botToRoll) return;
     const t = setTimeout(() => useGame.getState().roll(), PACE.botThinkMin + Math.random() * (PACE.botThinkMax - PACE.botThinkMin));
@@ -80,19 +92,43 @@ export function GameScreen() {
 
   if (!game || !current) return null;
 
-  const label = !introDone
-    ? "getting ready..."
-    : game.turn.phase === "gameOver"
-      ? "gg"
-      : s.handoff
-        ? `${game.players.find((p) => p.id === s.handoff)?.name ?? ""}'s turn!`
-        : picks.length > 0
-          ? "tap a token to move"
-          : s.busy
-            ? "..."
-            : current.isBot
-              ? `${current.name} is thinking...`
-              : `${current.name}, tap to roll`;
+  const mine = online && current.id === online.me;
+  const away = online?.view?.players[current.id]?.connected === false;
+  const secondsLeft = online?.deadline ? Math.max(0, Math.ceil((online.deadline - now) / 1000)) : 0;
+  const hurry = (text: string) => (secondsLeft <= 10 ? `${text} (${secondsLeft})` : text);
+  const picking = game.turn.phase === "awaitingMove";
+  const label =
+    online?.status === "reconnecting"
+      ? "reconnecting..."
+      : !introDone
+        ? "getting ready..."
+        : game.turn.phase === "gameOver"
+          ? "gg"
+          : s.handoff
+            ? `${game.players.find((p) => p.id === s.handoff)?.name ?? ""}'s turn!`
+            : picks.length > 0
+              ? online
+                ? hurry("tap a token to move")
+                : "tap a token to move"
+              : s.busy || online?.actSent
+                ? "..."
+                : current.isBot
+                  ? `${current.name} is thinking...`
+                  : !online
+                    ? `${current.name}, tap to roll`
+                    : mine
+                      ? humanCanRoll
+                        ? hurry("your turn, tap to roll")
+                        : "your turn..."
+                      : away
+                        ? `${current.name} is away`
+                        : picking
+                          ? `${current.name} is picking...`
+                          : `${current.name}'s turn`;
+  // roster tags: who this tab is, and who has lost their connection
+  const tags = online?.view
+    ? Object.fromEntries(game.players.map((p) => [p.id, p.id === online.me ? "you" : online.view!.players[p.id]?.connected === false ? "away" : ""]))
+    : undefined;
 
   const vb = `0 0 ${layout.width} ${layout.height}`;
   return (
@@ -107,6 +143,10 @@ export function GameScreen() {
         */}
         <svg className="sheet" viewBox={vb} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Ludo board">
           <BoardView {...layout.board} />
+          {/* on the still sheet: the sheets above let taps through except on the die and pick rings */}
+          {online && (
+            <SheetReactionButton x={layout.react.x} y={layout.react.y} s={layout.react.s} open={!!reactAnchor} onOpen={setReactAnchor} />
+          )}
           <g
             role="button"
             tabIndex={0}
@@ -123,7 +163,7 @@ export function GameScreen() {
           <g
             role="button"
             tabIndex={0}
-            aria-label="Back to the start page"
+            aria-label={online ? "Leave the room" : "Back to the start page"}
             className="home-link"
             onClick={s.goHome}
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && s.goHome()}
@@ -131,13 +171,13 @@ export function GameScreen() {
           >
             <rect x={-58} y={-34} width={116} height={48} fill="transparent" />
             <text textAnchor="middle" className="doodle-hand" fontSize={30} fill={palette.ink}>
-              ← home
+              {online ? "← leave" : "← home"}
             </text>
           </g>
         </svg>
         {/* the roster's own sheet: its loop slides at every handover */}
         <svg className="sheet sheet-moving" viewBox={vb} preserveAspectRatio="xMidYMid meet">
-          <Roster layout={layout} game={game} />
+          <Roster layout={layout} game={game} tags={tags} />
         </svg>
         <svg className="sheet sheet-moving" viewBox={vb} preserveAspectRatio="xMidYMid meet">
           <RestingTokens
@@ -172,12 +212,20 @@ export function GameScreen() {
             onRoll={s.roll}
           />
           <Notes layout={layout} notes={s.notes} />
+          {Object.entries(s.reactions).map(([id, r]) => {
+            // beside the player's row in the roster
+            const row = game.players.findIndex((p) => p.id === id);
+            if (row < 0) return null;
+            const { x, y, rowH } = layout.roster;
+            return <SheetBubble key={r.key} x={x + rowH * 0.5} y={y + row * rowH} reaction={r.reaction} sheetWidth={layout.width} reduced={reducedMotion} />;
+          })}
           {intro < INTRO_DONE && !reducedMotion && <TitleCard layout={layout} text="doodle ludo" />}
         </svg>
       </div>
       <div className="sr-only" aria-live="polite" role="status">
         {s.announcement}
       </div>
+      {reactAnchor && !s.showWin && <ReactionPicker anchor={reactAnchor} onClose={closeReactions} />}
       {s.showWin && <WinOverlay />}
     </main>
   );

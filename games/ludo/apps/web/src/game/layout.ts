@@ -15,6 +15,8 @@ export interface SheetLayout {
   title: { x: number; y: number };
   homeLink: { x: number; y: number };
   speaker: { x: number; y: number; s: number };
+  /** the quick-reactions button, online only */
+  react: { x: number; y: number; s: number };
 }
 
 const LANDSCAPE: SheetLayout = {
@@ -29,6 +31,7 @@ const LANDSCAPE: SheetLayout = {
   title: { x: 500, y: 470 },
   homeLink: { x: 1080, y: 70 },
   speaker: { x: 1530, y: 62, s: 1.1 },
+  react: { x: 1440, y: 62, s: 1.1 },
 };
 
 const PORTRAIT: SheetLayout = {
@@ -44,6 +47,7 @@ const PORTRAIT: SheetLayout = {
   title: { x: 500, y: 560 },
   homeLink: { x: 90, y: 66 },
   speaker: { x: 930, y: 58, s: 1.2 },
+  react: { x: 830, y: 58, s: 1.2 },
 };
 
 export function layoutFor(width: number, height: number): SheetLayout {

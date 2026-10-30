@@ -18,8 +18,54 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
 
+  games/ludo/apps/server:
+    dependencies:
+      '@colyseus/core':
+        specifier: 0.18.18
+        version: 0.18.18(@colyseus/better-call@1.3.3)(@colyseus/schema@5.0.36(typescript@5.6.3))(@colyseus/ws-transport@0.18.4)(@pm2/io@6.1.0)(express@5.3.0)
+      '@colyseus/schema':
+        specifier: 5.0.36
+        version: 5.0.36(typescript@5.6.3)
+      '@colyseus/ws-transport':
+        specifier: 0.18.4
+        version: 0.18.4(@colyseus/core@0.18.18)(express@5.3.0)
+      '@doodle-games/rooms':
+        specifier: workspace:*
+        version: link:../../../../packages/doodle-rooms
+      '@ludo-doodle/engine':
+        specifier: workspace:*
+        version: link:../../packages/engine
+      '@ludo-doodle/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
+    devDependencies:
+      '@colyseus/sdk':
+        specifier: 0.18.5
+        version: 0.18.5(@colyseus/core@0.18.18)(typescript@5.6.3)
+      '@colyseus/testing':
+        specifier: 0.18.6
+        version: 0.18.6(@colyseus/core@0.18.18)(@colyseus/sdk@0.18.5(@colyseus/core@0.18.18)(typescript@5.6.3))(@colyseus/tools@0.18.9(@colyseus/core@0.18.18)(@colyseus/ws-transport@0.18.4))
+      '@colyseus/tools':
+        specifier: 0.18.9
+        version: 0.18.9(@colyseus/core@0.18.18)(@colyseus/ws-transport@0.18.4)
+      '@types/node':
+        specifier: 22.10.2
+        version: 22.10.2
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      vite:
+        specifier: 5.4.21
+        version: 5.4.21(@types/node@22.10.2)
+      vitest:
+        specifier: 2.1.9
+        version: 2.1.9(@types/node@22.10.2)
+
   games/ludo/apps/web:
     dependencies:
+      '@colyseus/sdk':
+        specifier: 0.18.5
+        version: 0.18.5(@colyseus/core@0.18.18)(typescript@5.6.3)
       '@doodle-games/doodle-sound':
         specifier: workspace:*
         version: link:../../../../packages/doodle-sound
@@ -29,6 +75,9 @@ importers:
       '@ludo-doodle/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@ludo-doodle/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -63,6 +112,22 @@ importers:
       fast-check:
         specifier: 3.23.2
         version: 3.23.2
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      vitest:
+        specifier: 2.1.9
+        version: 2.1.9(@types/node@22.10.2)
+
+  games/ludo/packages/protocol:
+    dependencies:
+      '@doodle-games/rooms':
+        specifier: workspace:*
+        version: link:../../../../packages/doodle-rooms
+      '@ludo-doodle/engine':
+        specifier: workspace:*
+        version: link:../engine
+    devDependencies:
       typescript:
         specifier: 5.6.3
         version: 5.6.3

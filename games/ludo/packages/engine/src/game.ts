@@ -74,6 +74,17 @@ export function legalMoves(state: GameState, player: PlayerState, roll: number):
   return out;
 }
 
+/**
+ * The token to move without asking, or null when the choice matters. Ludo King moves by itself when
+ * only one token can move; tokens sharing a square (or all still in the base) are one choice.
+ */
+export function onlyChoice(state: GameState): number | null {
+  if (state.turn.phase !== "awaitingMove") return null;
+  const me = current(state);
+  const spots = new Set(state.turn.movable.map((i) => me.tokens[i]));
+  return spots.size === 1 ? state.turn.movable[0]! : null;
+}
+
 /** True when an opponent has two or more tokens on the shared square `player` would reach at `progress`. */
 function blockedAt(state: GameState, player: PlayerState, progress: number): boolean {
   const square = trackSquare(player.seat, progress);
