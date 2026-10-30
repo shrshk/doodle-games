@@ -25,7 +25,9 @@ export DOCKER_CONFIG
 PATH=/opt/homebrew/bin:$PATH
 
 network() { docker network inspect "$1" >/dev/null 2>&1 || docker network create "$@" >/dev/null; }
-network doodle-games-internal --internal
+# A fixed bridge name, so the Colima VM's firewall can drop everything this network sends to the VM
+# itself (its SSH would otherwise answer the game): see "provision" in ~/.colima/default/colima.yaml.
+network doodle-games-internal --internal -o com.docker.network.bridge.name=br-doodle-int
 network doodle-games-egress
 
 docker rm -f doodle-games doodle-games-tunnel >/dev/null 2>&1 || true
