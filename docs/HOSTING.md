@@ -69,8 +69,10 @@ sh deploy/air/run-containers.sh $(git rev-parse --short HEAD)
 ```
 
 Then check `curl -sf https://games.shirishve.com/__healthcheck`, and open a room from two devices.
-Bump `VERSION` in `apps/web/public/sw.js` when its caching rules change; otherwise installed PWAs pick
-up a new build on their next page load.
+Bump `VERSION` in a game's `games/<game>/apps/web/public/sw.js` when its caching rules change;
+otherwise installed apps pick up a new build on their next page load. Over a one-off `ssh` command,
+put Homebrew on the path first (`export PATH=/opt/homebrew/bin:$PATH`): a non-interactive shell does
+not load it, and `docker` is not found.
 
 ## Keeping the Air awake
 
