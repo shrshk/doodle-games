@@ -21,7 +21,8 @@ phone / browser ── https ──> Cloudflare (DNS, TLS, DDoS) ── tunnel �
 - **Domain:** `shirishve.com`, registered and hosted at Cloudflare. `games.shirishve.com` is a
   proxied CNAME to the Cloudflare Tunnel `doodle-games` (id `94bd5587-e639-4a08-a0fd-ef35755437ec`),
   configured from Cloudflare with one route, `games.shirishve.com` → `http://doodle-games:2567`, and
-  a 404 for everything else. No router port is open; the tunnel connects outbound.
+  a 404 for everything else. No router port is open; the tunnel connects outbound. Created, and
+  re-checkable, with [`deploy/air/cloudflare-tunnel.sh`](../deploy/air/cloudflare-tunnel.sh).
 - **Containers** (Colima on the Air), started by [`deploy/air/run-containers.sh`](../deploy/air/run-containers.sh):
   - `doodle-games`, image `doodle-games:<commit>` built from this repo's `Dockerfile`. Only on
     `doodle-games-internal`, a Docker *internal* network: no route to the Mac's own services (which
@@ -30,6 +31,9 @@ phone / browser ── https ──> Cloudflare (DNS, TLS, DDoS) ── tunnel �
     `doodle-games-internal` (to reach the game) and `doodle-games-egress` (its link to Cloudflare).
   - Both: non-root, read-only filesystem, all capabilities dropped, no-new-privileges, memory and
     process limits, `--restart unless-stopped`, no host folders mounted.
+  - The Colima VM drops everything the internal network sends to the VM itself (its SSH answered
+    the game otherwise): the `provision` block in [`deploy/air/colima-provision.yaml`](../deploy/air/colima-provision.yaml),
+    copied into the Air's `~/.colima/default/colima.yaml`, re-applies it on every Colima start.
 - **Secrets:** the tunnel token is in 1Password, vault "Home server", item
   `cloudflare tunnel doodle-games`, read at container start through
   `~/apps/living-room-tv/storage/op-home` (a service account that sees only that vault). The

@@ -1,0 +1,11 @@
+# The "provision" block in the Air's ~/.colima/default/colima.yaml (replacing `provision: null`).
+# Colima runs it in the VM on every start. It drops everything the game's internal Docker network
+# (bridge br-doodle-int, created by run-containers.sh) sends to the VM itself: the internal network
+# already has no route out, but the VM's own address on that bridge would still answer (its SSH did).
+# Container-to-container traffic on the bridge (tunnel <-> game) does not pass this rule.
+#
+# Apply without a restart:
+#   colima ssh -- sudo sh -c "iptables -C INPUT -i br-doodle-int -j DROP 2>/dev/null || iptables -I INPUT -i br-doodle-int -j DROP"
+provision:
+  - mode: system
+    script: iptables -C INPUT -i br-doodle-int -j DROP 2>/dev/null || iptables -I INPUT -i br-doodle-int -j DROP
