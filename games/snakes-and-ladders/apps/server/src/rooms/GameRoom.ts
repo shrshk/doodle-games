@@ -1,14 +1,23 @@
 import { randomInt } from "node:crypto";
-import { Room, ServerError, type AuthContext, type Client } from "@colyseus/core";
+import { Room, type AuthContext, type Client } from "@colyseus/core";
+import {
+  DEFAULT_LIMITS,
+  RoomOptionsError,
+  checkJoinRate,
+  claimCode,
+  cleanName,
+  closeRoom,
+  log,
+  openRoom,
+  releaseCode,
+  type RoomLimits,
+} from "@doodle-games/rooms/server";
 import { inbuiltBoards, type Board } from "@snakes-doodle/boards";
 import { DEFAULT_RULES, createGame, reduce, validateBoard, type GameEvent, type GameState, type RuleSet } from "@snakes-doodle/engine";
 import {
   BOT_NAMES,
-  CODE_ALPHABET,
-  CODE_LENGTH,
   EMPTY_ROOM_SECONDS,
   INTRO_MS,
-  NAME_MAX,
   PACE,
   REACTION_COOLDOWN_MS,
   RECONNECT_SECONDS,
@@ -27,7 +36,6 @@ import {
 } from "@snakes-doodle/protocol";
 import { GameRoomState, PlayerState } from "../schema";
 
-const CODES_KEY = "snakes-doodle:codes";
 /** a roll may arrive this early, to forgive clock jitter between server and client */
 const ROLL_EARLY_MS = 400;
 /** at most one roll message per client per this many ms */
@@ -36,13 +44,8 @@ const ROLL_COOLDOWN_MS = 300;
 const AWAY_ROLL_MS = 1500;
 const SPECTATOR_SLOTS = 8;
 
-/** One JSON line per room event, so a host machine's log shows who joined, dropped and came back. */
-function log(event: string, fields: Record<string, unknown>) {
-  console.log(JSON.stringify({ t: new Date().toISOString(), event, ...fields }));
-}
-
-/** Any thrown error in onCreate fails the create call; the client sees this message. */
-export class RoomOptionsError extends Error {}
+// shared with every game's rooms; re-exported for this server's tests and callers
+export { DEFAULT_LIMITS, RoomOptionsError, cleanName, resetRateLimits, type RoomLimits } from "@doodle-games/rooms/server";
 
 export function resolveBoard(options: CreateRoomOptions): Board {
   const board = inbuiltBoards.find((b) => b.id === (options.boardId ?? "classic-100"));
@@ -60,11 +63,6 @@ export function resolveRules(raw: Partial<RuleSet> | undefined): RuleSet {
     playForPlaces: bool("playForPlaces"),
     overshoot: r.overshoot === "bounce" ? "bounce" : "stay",
   };
-}
-
-export function cleanName(raw: unknown, fallback: string): string {
-  const name = typeof raw === "string" ? raw.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, NAME_MAX) : "";
-  return name || fallback;
 }
 
 /** Real-time pacing. Tests shrink it so a whole game runs in milliseconds. */
@@ -91,55 +89,13 @@ export const REAL_TIMING: RoomTiming = {
   emptyRoomMs: EMPTY_ROOM_SECONDS * 1000,
 };
 
-/**
- * Abuse limits. A volumetric flood is Cloudflare's job (the tunnel puts its proxy in front of the
- * Air); these stop what gets through from eating the process: scripted room spam and message floods.
- */
-export interface RoomLimits {
-  /** room creations + joins per client address per minute */
-  joinsPerMinute: number;
-  /** rooms open at once on this server */
-  maxRooms: number;
-  /** messages per client per second; Colyseus disconnects a client that sends more */
-  messagesPerSecond: number;
-}
-
-export const DEFAULT_LIMITS: RoomLimits = { joinsPerMinute: 30, maxRooms: 200, messagesPerSecond: 20 };
-
-/** recent matchmaking calls per client address (sliding one-minute window) */
-const recentJoins = new Map<string, number[]>();
-let openRooms = 0;
-
-/** Tests start each limit check from a clean slate. */
-export function resetRateLimits() {
-  recentJoins.clear();
-}
-
-/** The player's address: Cloudflare's header when the tunnel is in front, else what Colyseus saw. */
-function clientAddress(context: AuthContext): string {
-  const cf = context.headers?.get?.("cf-connecting-ip");
-  return cf || context.ip || "unknown";
-}
-
 export class GameRoom extends Room<{ state: GameRoomState }> {
   static timing: RoomTiming = REAL_TIMING;
   static limits: RoomLimits = DEFAULT_LIMITS;
 
   /** Runs before every create and join (not reconnects): a per-address rate limit. */
   static override async onAuth(_token: string, _options: unknown, context: AuthContext) {
-    const ip = clientAddress(context);
-    const now = Date.now();
-    const recent = (recentJoins.get(ip) ?? []).filter((t) => now - t < 60_000);
-    if (recent.length >= GameRoom.limits.joinsPerMinute) {
-      log("rate_limited", { ip });
-      throw new ServerError(429, "too_many_requests");
-    }
-    recent.push(now);
-    recentJoins.set(ip, recent);
-    // keep the map from growing without bound under a spray of addresses
-    if (recentJoins.size > 10_000) {
-      for (const [key, times] of recentJoins) if (now - times[times.length - 1]! > 60_000) recentJoins.delete(key);
-    }
+    checkJoinRate(context, GameRoom.limits);
     return true;
   }
   override state = new GameRoomState();
@@ -172,10 +128,6 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   };
 
   override async onCreate(options: CreateRoomOptions = {}) {
-    if (openRooms >= GameRoom.limits.maxRooms) {
-      log("room_cap_reached", { openRooms });
-      throw new RoomOptionsError("server_busy");
-    }
     this.board = resolveBoard(options);
     this.rules = resolveRules(options.rules);
     // inbuilt boards are tested valid under every rule set; this keeps a bad future board out of play
@@ -183,8 +135,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     if (!check.ok) throw new RoomOptionsError(`board_invalid: ${check.errors.join("; ")}`);
     this.onTimeout = options.onTimeout === "skip" ? "skip" : "roll";
 
-    this.roomId = await this.claimCode();
-    openRooms++;
+    openRoom(GameRoom.limits);
+    this.roomId = await claimCode(this.presence);
     const turnSeconds = Number.isFinite(options.turnSeconds) ? Math.round(options.turnSeconds!) : TURN_SECONDS.default;
     Object.assign(this.state, {
       code: this.roomId,
@@ -196,18 +148,6 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     // nobody may join until the creator has; an unclaimed room closes like an empty one
     this.armEmptyTimer();
     log("room_created", { room: this.roomId, board: this.board.id });
-  }
-
-  /** A short code that doubles as the room id, unique across the whole server (presence set). */
-  private async claimCode(): Promise<string> {
-    for (;;) {
-      let code = "";
-      for (let i = 0; i < CODE_LENGTH; i++) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
-      // check, then claim: the local presence's sadd returns nothing, so it cannot report a clash
-      if (await this.presence.sismember(CODES_KEY, code)) continue;
-      await this.presence.sadd(CODES_KEY, code);
-      return code;
-    }
   }
 
   override onJoin(client: Client, options: JoinRoomOptions = {}) {
@@ -271,11 +211,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   override async onDispose() {
-    openRooms--;
+    closeRoom();
     log("room_closed", { room: this.roomId });
     this.turnTimer?.clear();
     this.clearEmptyTimer();
-    await this.presence.srem(CODES_KEY, this.roomId);
+    await releaseCode(this.presence, this.roomId);
   }
 
   // ---------- lobby ----------

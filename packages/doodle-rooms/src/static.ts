@@ -16,7 +16,7 @@ const TYPES: Record<string, string> = {
 };
 
 /**
- * Serves the built web client (apps/web/dist) from the game server, so one process and one port
+ * Serves a built web client (a game's apps/web/dist) from its game server, so one process and one port
  * carry the page and the game. Unknown paths get index.html, so links like /join/ABC123 open the app.
  * Express-style middleware signature, mounted on the WebSocket transport's app; it never touches
  * the Colyseus routes, which are matched before it.

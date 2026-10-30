@@ -8,7 +8,7 @@ import { serveStatic } from "../src/static";
 let server: Server;
 let base = "";
 beforeAll(async () => {
-  const dir = mkdtempSync(join(tmpdir(), "snl-static-"));
+  const dir = mkdtempSync(join(tmpdir(), "doodle-static-"));
   writeFileSync(join(dir, "index.html"), "<!doctype html><title>app</title>");
   mkdirSync(join(dir, "icons"));
   writeFileSync(join(dir, "icons", "icon.png"), "png");

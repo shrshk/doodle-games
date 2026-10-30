@@ -1,8 +1,8 @@
 import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
+import { serveStatic } from "@doodle-games/rooms/server";
 import { ROOM_NAME } from "@snakes-doodle/protocol";
 import { GameRoom } from "./rooms/GameRoom";
-import { serveStatic } from "./static";
 
 export interface AppOptions {
   /** built web client to serve on the same port; omit to serve only the game */

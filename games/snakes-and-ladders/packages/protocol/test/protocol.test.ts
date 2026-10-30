@@ -1,20 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { classic100 } from "@snakes-doodle/boards";
 import { createGame } from "@snakes-doodle/engine";
-import { CODE_ALPHABET, PACE, isRoomCode, normalizeCode, publicGame, turnPlaybackMs } from "../src";
-
-describe("room codes", () => {
-  it("accepts six readable characters and nothing else", () => {
-    expect(isRoomCode("ABC234")).toBe(true);
-    expect(isRoomCode("ABC23")).toBe(false);
-    expect(isRoomCode("ABCO01")).toBe(false); // O, 0 and 1 are never used
-    expect(CODE_ALPHABET).not.toMatch(/[IO01]/);
-  });
-
-  it("forgives how people type a code", () => {
-    expect(normalizeCode(" abc-234 ")).toBe("ABC234");
-  });
-});
+import { PACE, publicGame, turnPlaybackMs } from "../src";
 
 describe("turnPlaybackMs", () => {
   it("adds up the moves of a turn plus the hand-over", () => {

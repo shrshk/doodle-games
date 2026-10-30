@@ -15,6 +15,7 @@ COPY games/ludo/apps/web/package.json games/ludo/apps/web/
 COPY games/ludo/packages/engine/package.json games/ludo/packages/engine/
 COPY packages/ui-doodle/package.json packages/ui-doodle/
 COPY packages/doodle-sound/package.json packages/doodle-sound/
+COPY packages/doodle-rooms/package.json packages/doodle-rooms/
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build

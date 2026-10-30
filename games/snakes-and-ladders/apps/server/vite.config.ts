@@ -10,5 +10,5 @@ export default defineConfig({
     ssr: "src/index.ts",
     rollupOptions: { output: { format: "es", entryFileNames: "index.js" } },
   },
-  ssr: { noExternal: [/^@snakes-doodle\//] },
+  ssr: { noExternal: [/^@snakes-doodle\//, /^@doodle-games\//] },
 });

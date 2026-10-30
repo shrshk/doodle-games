@@ -1,0 +1,24 @@
+{
+  "name": "@doodle-games/rooms",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@colyseus/core": "0.18.18"
+  },
+  "devDependencies": {
+    "@colyseus/core": "0.18.18",
+    "@types/node": "22.10.2",
+    "typescript": "5.6.3",
+    "vitest": "2.1.9"
+  }
+}
