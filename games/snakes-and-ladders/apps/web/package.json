@@ -14,10 +14,11 @@
   },
   "dependencies": {
     "@colyseus/sdk": "0.18.5",
+    "@doodle-games/doodle-sound": "workspace:*",
+    "@doodle-games/ui-doodle": "workspace:*",
     "@snakes-doodle/boards": "workspace:*",
     "@snakes-doodle/engine": "workspace:*",
     "@snakes-doodle/protocol": "workspace:*",
-    "@doodle-games/ui-doodle": "workspace:*",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "zustand": "4.5.7"
