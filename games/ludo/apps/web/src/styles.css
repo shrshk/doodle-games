@@ -570,7 +570,18 @@ body {
   .reaction-picker, .seat-bubble { animation: none; }
 }
 
-.build-id { margin-top: auto; padding-top: 24px; font-size: 13px; color: #b3a898; font-family: var(--font-hand); }
+/* the build a device runs, tucked in a corner: only there to tell an old installed app from a new one */
+.build-id {
+  position: fixed;
+  right: calc(8px + env(safe-area-inset-right));
+  bottom: calc(6px + env(safe-area-inset-bottom));
+  margin: 0;
+  font-family: var(--font-hand);
+  font-size: 10px;
+  color: #b3a898;
+  opacity: 0.7;
+  pointer-events: none;
+}
 
 /* Ludo: the rings round the tokens a person can move, and their tap targets */
 .pick-ring { animation: pick-breathe 900ms ease-in-out infinite alternate; }

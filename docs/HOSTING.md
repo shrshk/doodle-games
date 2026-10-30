@@ -64,7 +64,7 @@ On the Air (`ssh -i ~/.ssh/id_ed25519_air shrshk7@Shirishs-M2.local`):
 ```sh
 cd ~/apps/doodle-games && git pull -q
 export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock DOCKER_CONFIG=$(mktemp -d); echo '{}' > $DOCKER_CONFIG/config.json
-docker build -t doodle-games:$(git rev-parse --short HEAD) .
+docker build --build-arg BUILD_ID=$(git rev-parse --short HEAD) -t doodle-games:$(git rev-parse --short HEAD) .
 sh deploy/air/run-containers.sh $(git rev-parse --short HEAD)
 ```
 

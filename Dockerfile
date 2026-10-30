@@ -23,7 +23,9 @@ COPY packages/doodle-sound/package.json packages/doodle-sound/
 COPY packages/doodle-rooms/package.json packages/doodle-rooms/
 RUN pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm build
+# the commit, shown small on every page (the build context has no .git); set it with --build-arg
+ARG BUILD_ID=dev
+RUN BUILD_ID=$BUILD_ID pnpm build
 # the server bundle inlines the workspace packages; this keeps only its npm runtime dependencies
 RUN pnpm --filter @doodle-games/server deploy --prod --legacy /out \
   && cp -r apps/server/dist /out/dist \

@@ -89,7 +89,18 @@ body {
 .hub-game-name { font-family: var(--font-script); font-weight: 700; font-size: clamp(28px, 6vw, 38px); color: var(--crayon-red); line-height: 1.05; text-align: center; margin-top: 8px; }
 .hub-game-blurb { font-size: 18px; color: #6b5a4e; text-align: center; }
 
-.build-id { font-size: 13px; color: #9a8f80; margin-top: 28px; }
+/* the build a device runs, tucked in a corner: only there to tell an old installed app from a new one */
+.build-id {
+  position: fixed;
+  right: calc(8px + env(safe-area-inset-right));
+  bottom: calc(6px + env(safe-area-inset-bottom));
+  margin: 0;
+  font-family: var(--font-hand);
+  font-size: 10px;
+  color: #b3a898;
+  opacity: 0.7;
+  pointer-events: none;
+}
 
 @media (max-width: 420px) {
   .hub-games { gap: 12px; }
