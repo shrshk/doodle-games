@@ -571,3 +571,15 @@ body {
 }
 
 .build-id { margin-top: auto; padding-top: 24px; font-size: 13px; color: #b3a898; font-family: var(--font-hand); }
+
+/* back to the site's front page, which lists every game */
+.all-games {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: calc(14px + env(safe-area-inset-left));
+  font-family: var(--font-script);
+  font-size: 24px;
+  color: var(--crayon-blue);
+  text-decoration: none;
+  z-index: 2;
+}

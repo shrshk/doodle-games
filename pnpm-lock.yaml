@@ -18,6 +18,80 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
 
+  apps/hub:
+    dependencies:
+      '@doodle-games/ui-doodle':
+        specifier: workspace:*
+        version: link:../../packages/ui-doodle
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/react':
+        specifier: 18.3.31
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: 18.3.7
+        version: 18.3.7(@types/react@18.3.31)
+      '@vitejs/plugin-react':
+        specifier: 4.7.0
+        version: 4.7.0(vite@5.4.21(@types/node@22.10.2))
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      vite:
+        specifier: 5.4.21
+        version: 5.4.21(@types/node@22.10.2)
+
+  apps/server:
+    dependencies:
+      '@colyseus/core':
+        specifier: 0.18.18
+        version: 0.18.18(@colyseus/better-call@1.3.3)(@colyseus/schema@5.0.36(typescript@5.6.3))(@colyseus/ws-transport@0.18.4)(@pm2/io@6.1.0)(express@5.3.0)
+      '@colyseus/schema':
+        specifier: 5.0.36
+        version: 5.0.36(typescript@5.6.3)
+      '@colyseus/ws-transport':
+        specifier: 0.18.4
+        version: 0.18.4(@colyseus/core@0.18.18)(express@5.3.0)
+      '@doodle-games/rooms':
+        specifier: workspace:*
+        version: link:../../packages/doodle-rooms
+      '@ludo-doodle/protocol':
+        specifier: workspace:*
+        version: link:../../games/ludo/packages/protocol
+      '@ludo-doodle/server':
+        specifier: workspace:*
+        version: link:../../games/ludo/apps/server
+      '@snakes-doodle/protocol':
+        specifier: workspace:*
+        version: link:../../games/snakes-and-ladders/packages/protocol
+      '@snakes-doodle/server':
+        specifier: workspace:*
+        version: link:../../games/snakes-and-ladders/apps/server
+    devDependencies:
+      '@colyseus/sdk':
+        specifier: 0.18.5
+        version: 0.18.5(@colyseus/core@0.18.18)(typescript@5.6.3)
+      '@colyseus/testing':
+        specifier: 0.18.6
+        version: 0.18.6(@colyseus/core@0.18.18)(@colyseus/sdk@0.18.5(@colyseus/core@0.18.18)(typescript@5.6.3))(@colyseus/tools@0.18.9(@colyseus/core@0.18.18)(@colyseus/ws-transport@0.18.4))
+      '@types/node':
+        specifier: 22.10.2
+        version: 22.10.2
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      vite:
+        specifier: 5.4.21
+        version: 5.4.21(@types/node@22.10.2)
+      vitest:
+        specifier: 2.1.9
+        version: 2.1.9(@types/node@22.10.2)
+
   games/ludo/apps/server:
     dependencies:
       '@colyseus/core':

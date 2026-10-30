@@ -2,18 +2,39 @@
   "name": "Doodle Ludo",
   "short_name": "Ludo",
   "description": "Ludo drawn like crayon doodles on paper. Play on one device with up to 4, with bots.",
-  "id": "/",
-  "start_url": "/",
-  "scope": "/",
+  "id": "/ludo/",
+  "start_url": "/ludo/",
+  "scope": "/ludo/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#F5F2EA",
   "theme_color": "#F5F2EA",
-  "categories": ["games", "kids", "entertainment"],
+  "categories": [
+    "games",
+    "kids",
+    "entertainment"
+  ],
   "icons": [
-    { "src": "/icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

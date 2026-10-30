@@ -15,6 +15,6 @@ createRoot(document.getElementById("root")!).render(
 // stale modules and fight Vite's hot reload.
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((err: unknown) => console.error("sw_register_failed", err));
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL }).catch((err: unknown) => console.error("sw_register_failed", err));
   });
 }

@@ -19,14 +19,14 @@ export function App() {
   // A /join/ABC123 link opens the online page with that code; otherwise a refresh rejoins the
   // room this tab was in. A link to the room this tab is already seated in (the host pasting their
   // own share link) takes the seat back instead of joining a second time as someone new.
-  // The address goes back to "/" so a later refresh does not join twice.
+  // The address goes back to the game's start page so a later refresh does not join twice.
   const [joinCode] = useState(() => {
     const code = codeFromPath();
     return code && normalizeCode(code) !== savedRoomCode() ? code : "";
   });
   useEffect(() => {
     const st = useGame.getState();
-    if (codeFromPath()) history.replaceState(null, "", "/");
+    if (codeFromPath()) history.replaceState(null, "", import.meta.env.BASE_URL);
     if (joinCode) st.openOnline();
     else void st.resumeOnline();
   }, []);

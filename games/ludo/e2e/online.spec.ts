@@ -22,7 +22,7 @@ test("two browsers make a room, join by link, play steps with picks, and see the
   const bo = await (await browser.newContext()).newPage();
 
   // Ana turns off "need a 6" so tokens come out at once and real picks happen early
-  await ana.goto("/");
+  await ana.goto("/ludo/");
   await ana.locator(".house-rules summary").click();
   await ana.getByRole("switch", { name: /need a 6 to bring a token out/ }).click();
   await ana.getByRole("button", { name: /play with friends online/ }).click();
@@ -33,7 +33,7 @@ test("two browsers make a room, join by link, play steps with picks, and see the
   await expect(ana.getByText(/house rules \(1 changed\)/)).toBeVisible();
 
   // Bo comes in through the share link, and sits opposite Ana
-  await bo.goto(`/join/${code}`);
+  await bo.goto(`/ludo/join/${code}`);
   await expect(bo.locator(".room-code-letters")).toHaveText(code);
   await expect(ana.getByRole("button", { name: /owl, bottom right corner/ })).toBeVisible();
 

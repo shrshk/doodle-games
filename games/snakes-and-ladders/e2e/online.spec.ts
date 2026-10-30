@@ -16,7 +16,7 @@ test("two browsers make a room, join by code and link, and play it to the finish
   const bo = await (await browser.newContext()).newPage();
 
   // Ana opens a room on the small board
-  await ana.goto("/");
+  await ana.goto("/snakes/");
   await ana.getByRole("button", { name: /^Board:/ }).click();
   await ana.getByRole("button", { name: /quick doodle/ }).click();
   await ana.getByRole("button", { name: /play with friends online/ }).click();
@@ -26,12 +26,12 @@ test("two browsers make a room, join by code and link, and play it to the finish
   expect(code).toMatch(/^[A-Z2-9]{6}$/);
 
   // pasting the share link into the host's own tab keeps the host's seat (no second "you")
-  await ana.goto(`/join/${code}`);
+  await ana.goto(`/snakes/join/${code}`);
   await expect(ana.locator(".room-code-letters")).toHaveText(code);
   await expect(ana.getByText("you", { exact: true })).toHaveCount(1);
   await expect(ana.getByRole("button", { name: /start!|waiting for players/ })).toBeVisible();
 
-  // Bo comes in through the share link
+  // Bo comes in through a share link from before the hub (/join/CODE): it still finds the room
   await bo.goto(`/join/${code}`);
   await expect(bo.locator(".room-code-letters")).toHaveText(code);
   await expect(ana.getByText("player", { exact: true })).toBeVisible();

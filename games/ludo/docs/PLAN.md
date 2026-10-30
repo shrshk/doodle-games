@@ -78,3 +78,6 @@ per-server abuse limits, names, reactions, static serving).
   two-player e2e (room by link, reactions in lobby and game, refresh mid-game, picks, both screens
   agree). Found on the way: a `const` after the store's `return` is never initialised (a refresh
   mid-game crashed), and @colyseus/testing's boot() ignores its port for a ready-made Server.
+- 2026-10-30: phase 3: published at https://games.shirishve.com/ludo/ (owner's choice: a
+  "doodle games" page at / listing every game; each game under its own path, all on one server,
+  `apps/server`). Snakes & Ladders moved to /snakes/; its old root worker is retired by /sw.js.

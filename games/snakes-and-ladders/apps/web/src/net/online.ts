@@ -85,10 +85,11 @@ export function describeError(err: unknown): string {
   return "something went wrong, try again";
 }
 
-/** /join/ABC123 opens the app straight into that room. */
-export function codeFromPath(path = location.pathname): string | null {
-  const m = /^\/join\/([A-Za-z0-9-]{4,12})\/?$/.exec(path);
+/** /snakes/join/ABC123 opens the app straight into that room. */
+export function codeFromPath(path = location.pathname, base = import.meta.env.BASE_URL): string | null {
+  if (!path.startsWith(`${base}join/`)) return null;
+  const m = /^([A-Za-z0-9-]{4,12})\/?$/.exec(path.slice(base.length + "join/".length));
   return m ? m[1]! : null;
 }
 
-export const joinLink = (code: string) => `${location.origin}/join/${code}`;
+export const joinLink = (code: string) => `${location.origin}${import.meta.env.BASE_URL}join/${code}`;

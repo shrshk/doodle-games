@@ -14,6 +14,9 @@ export function HomeScreen() {
 
   return (
     <main className="home">
+      <a className="ink-link all-games" href="/">
+        ← all games
+      </a>
       <button type="button" className="sound-toggle" onClick={toggleMute} aria-pressed={muted} aria-label={muted ? "Turn sound on (M)" : "Mute sound (M)"}>
         <svg viewBox="-24 -20 48 40" aria-hidden="true">
           <Speaker muted={muted} />

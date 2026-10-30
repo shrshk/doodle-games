@@ -13,6 +13,8 @@ function buildId(): string {
 }
 
 export default defineConfig({
+  // served under /ludo/ next to the other games and the hub page at /
+  base: "/ludo/",
   plugins: [react()],
   define: { __BUILD_ID__: JSON.stringify(buildId()) },
   server: { port: 5176 },

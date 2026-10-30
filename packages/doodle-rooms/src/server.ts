@@ -5,7 +5,7 @@ import { randomInt } from "node:crypto";
 import { ServerError, type AuthContext, type Presence } from "@colyseus/core";
 import { CODE_ALPHABET, CODE_LENGTH, NAME_MAX } from "./index";
 
-export { serveStatic } from "./static";
+export { redirects, serveStatic } from "./static";
 
 /** One JSON line per room event, so a host machine's log shows who joined, dropped and came back. */
 export function log(event: string, fields: Record<string, unknown>) {

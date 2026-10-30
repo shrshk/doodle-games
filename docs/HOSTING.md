@@ -1,14 +1,18 @@
 # Hosting — the MacBook Air
 
-The owner's MacBook Air serves the games at **https://games.shirishve.com** (Snakes & Ladders today).
+The owner's MacBook Air serves the games at **https://games.shirishve.com**: the Doodle Games page at `/`,
+Snakes & Ladders at `/snakes/` and Ludo at `/ludo/`.
 The Air also runs the owner's private home apps; the games are the one thing on it that the internet
 can reach, so the setup below is built to keep an attacker who gets into the game from going further.
 
 ## What runs
 
-One process serves everything on port 2567: the built web client (`/join/CODE` and other page paths
-answered with `index.html`, missing files with 404), the Colyseus matchmaking routes and game
-WebSockets, and `GET /__healthcheck` → `OK`. Rooms live in memory: a restart ends the games in
+One process (`apps/server`) serves everything on port 2567: the hub page at `/`, each game's built
+web client under its path (`/snakes/join/CODE` and other page paths answered with that game's
+`index.html`, missing files with 404), both games' Colyseus rooms (one matchmaker; a room code is
+unique across the games), and `GET /__healthcheck` → `OK`. Share links from before the hub
+(`/join/CODE`) redirect to `/snakes/join/CODE`. `/sw.js` retires the offline worker Snakes &
+Ladders had at the root; each game's worker now lives at `/<game>/sw.js`. Rooms live in memory: a restart ends the games in
 progress and loses nothing else (no database, no accounts).
 
 ## Set up (2026-10-30)
