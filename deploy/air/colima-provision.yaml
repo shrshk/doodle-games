@@ -4,8 +4,16 @@
 # already has no route out, but the VM's own address on that bridge would still answer (its SSH did).
 # Container-to-container traffic on the bridge (tunnel <-> game) does not pass this rule.
 #
+#
+# The second rule is machine-wide (added 2026-10-30, living-room-tv plan S1): every container is cut off from the
+# Mac itself (host.lima.internal, 192.168.5.2), where mimir-flix, mimir-photos and Jellyfin listen on loopback.
+# Internet traffic only passes through 192.168.5.2 as the gateway, so it is not affected.
+#
 # Apply without a restart:
 #   colima ssh -- sudo sh -c "iptables -C INPUT -i br-doodle-int -j DROP 2>/dev/null || iptables -I INPUT -i br-doodle-int -j DROP"
+#   colima ssh -- sudo sh -c "iptables -N DOCKER-USER 2>/dev/null; iptables -C DOCKER-USER -d 192.168.5.2 -j REJECT 2>/dev/null || iptables -I DOCKER-USER -d 192.168.5.2 -j REJECT"
 provision:
   - mode: system
     script: iptables -C INPUT -i br-doodle-int -j DROP 2>/dev/null || iptables -I INPUT -i br-doodle-int -j DROP
+  - mode: system
+    script: iptables -N DOCKER-USER 2>/dev/null; iptables -C DOCKER-USER -d 192.168.5.2 -j REJECT 2>/dev/null || iptables -I DOCKER-USER -d 192.168.5.2 -j REJECT
