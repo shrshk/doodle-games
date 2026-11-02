@@ -8,3 +8,7 @@ games/snakes-and-ladders/exports/*
 !games/snakes-and-ladders/exports/boards-a4.pdf
 test-results/
 playwright-report/
+
+# The TV app: its build output and signing key (made by build.sh, never committed)
+tv-app/out/
+*.keystore
