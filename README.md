@@ -12,7 +12,7 @@ Live at https://games.shirishve.com: a page listing the games, each under its ow
 Shared by every game: [`packages/ui-doodle`](packages/ui-doodle) (characters, dice tower, paper
 slips, margin doodles, crayon filters), [`packages/doodle-sound`](packages/doodle-sound) (synthesised sound effects),
 [`packages/doodle-rooms`](packages/doodle-rooms) (what online rooms share) and the style frames in `docs/reference/`. Hosting on the
-home MacBook Air: [`docs/HOSTING.md`](docs/HOSTING.md).
+home MacBook Air: [`docs/HOSTING.md`](docs/HOSTING.md). Architecture (system, data flow, code map): [`docs/architecture.md`](docs/architecture.md).
 
 ```sh
 pnpm install
