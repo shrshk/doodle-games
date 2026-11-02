@@ -92,3 +92,11 @@
   .doodle-blink, .doodle-pop-in, .doodle-pip, .doodle-tumble, .doodle-sun-rays, .doodle-wiggle,
   .doodle-zzz, .doodle-sway { animation: none; }
 }
+
+/* TV mode (?tv=1, see tvRemote.ts): the control the remote is on shows from across the room. */
+html.tv :focus-visible,
+html.tv :focus {
+  outline: 5px solid #ffcc00;
+  outline-offset: 4px;
+  border-radius: 10px;
+}

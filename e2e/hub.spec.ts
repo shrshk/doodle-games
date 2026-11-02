@@ -25,3 +25,25 @@ test("each game's files and offline worker live under its path; the root worker 
   expect(await (await request.get("/sw.js")).text()).toContain("unregister()");
   expect((await request.get("/apple-touch-icon.png")).headers()["content-type"]).toBe("image/png");
 });
+
+test("with ?tv=1 a TV remote's arrows and OK reach a game and its controls; without it nothing changes", async ({ page }) => {
+  await page.goto("/");
+  await page.keyboard.press("ArrowDown");
+  expect(await page.evaluate(() => document.documentElement.classList.contains("tv"))).toBe(false);
+  expect(await page.evaluate(() => document.activeElement === document.body)).toBe(true);
+
+  await page.goto("/?tv=1");
+  await page.keyboard.press("ArrowDown"); // the first control gets the focus
+  const first = await page.evaluate(() => (document.activeElement as HTMLElement).innerText);
+  // Move until a game link has the focus, then OK opens it.
+  for (let i = 0; i < 6 && !/snakes|ludo/i.test(await page.evaluate(() => (document.activeElement as HTMLElement).innerText)); i++) {
+    await page.keyboard.press("ArrowDown");
+  }
+  expect(first.length).toBeGreaterThan(0);
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/(snakes|ludo)\/$/);
+  // Still TV mode in the game (the tab remembers it): the arrows reach its buttons.
+  expect(await page.evaluate(() => document.documentElement.classList.contains("tv"))).toBe(true);
+  await page.keyboard.press("ArrowDown");
+  expect(await page.evaluate(() => /^(BUTTON|A|INPUT)$/.test(document.activeElement!.tagName) || document.activeElement!.hasAttribute("tabindex"))).toBe(true);
+});

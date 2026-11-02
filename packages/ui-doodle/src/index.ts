@@ -21,3 +21,4 @@ export {
   MiniMushroom,
 } from "./doodles/Doodles";
 export { Heart, Sparkle, Ladybug, Snail, Butterfly, CoffeeStain, Dandelion, HillHouse, Flag, Speaker, ThemeIcon } from "./doodles/Critters";
+export { startTvRemote, tvMode, nearest } from "./tvRemote";
