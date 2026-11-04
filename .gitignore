@@ -12,3 +12,6 @@ playwright-report/
 # The TV app: its build output and signing key (made by build.sh, never committed)
 tv-app/out/
 *.keystore
+
+# Your own 1Password vault and item names for deploy/air (see docs/HOSTING.md)
+deploy/air/local.env

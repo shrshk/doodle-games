@@ -9,13 +9,17 @@
 #                         games.shirishve.com -> http://doodle-games:2567 and nothing else.
 #
 # Both run as non-root, read-only, all capabilities dropped, no-new-privileges, with memory and process
-# limits. The tunnel token is read from 1Password ("Home server" vault) at start, never written to disk.
+# limits. The tunnel token is read from 1Password (vault $OP_VAULT, see deploy/air/local.env) at start, never written to disk.
 #
 # Usage, on the Air:  deploy/air/run-containers.sh <image tag>   e.g. 5dee673 (built from that commit)
 set -eu
+HERE=$(cd "$(dirname "$0")" && pwd)
+# Your own 1Password names go in deploy/air/local.env (not in git), for example OP_VAULT="My vault".
+if [ -f "$HERE/local.env" ]; then . "$HERE/local.env"; fi
+OP_VAULT=${OP_VAULT:-Home}
+OPH=${OPH:-$HOME/apps/living-room-tv/storage/op-home}
 TAG=${1:?usage: run-containers.sh <doodle-games image tag>}
 CLOUDFLARED=cloudflare/cloudflared:2026.10.1
-OPH=$HOME/apps/living-room-tv/storage/op-home
 
 export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
 # ~/.docker/config.json names a credential helper this Mac does not have; an empty config avoids it
@@ -39,7 +43,7 @@ docker run -d --name doodle-games --restart unless-stopped \
   --memory 384m --memory-swap 768m --pids-limit 128 \
   "doodle-games:$TAG" >/dev/null
 
-TUNNEL_TOKEN=$("$OPH" read "op://Home server/cloudflare tunnel doodle-games/credential" </dev/null) \
+TUNNEL_TOKEN=$("$OPH" read "op://$OP_VAULT/${TUNNEL_ITEM:-cloudflare-tunnel-doodle-games}/credential" </dev/null) \
 docker create --name doodle-games-tunnel --restart unless-stopped \
   --network doodle-games-internal \
   --read-only --user 65532:65532 \

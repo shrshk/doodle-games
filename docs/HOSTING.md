@@ -38,10 +38,10 @@ phone / browser ── https ──> Cloudflare (DNS, TLS, DDoS) ── tunnel �
   - The Colima VM drops everything the internal network sends to the VM itself (its SSH answered
     the game otherwise): the `provision` block in [`deploy/air/colima-provision.yaml`](../deploy/air/colima-provision.yaml),
     copied into the Air's `~/.colima/default/colima.yaml`, re-applies it on every Colima start.
-- **Secrets:** the tunnel token is in 1Password, vault "Home server", item
-  `cloudflare tunnel doodle-games`, read at container start through
+- **Secrets:** the tunnel token is in 1Password (the vault and item names are set in
+  `deploy/air/local.env`, which is not in git), read at container start through
   `~/apps/living-room-tv/storage/op-home` (a service account that sees only that vault). The
-  Cloudflare API token (item `cloudfare token`) can edit DNS on `shirishve.com` and Cloudflare Tunnels.
+  Cloudflare API token (its own 1Password item) can edit DNS on `shirishve.com` and Cloudflare Tunnels.
 - **Abuse limits** in the game server: 30 room creations/joins per address per minute (it reads
   Cloudflare's `CF-Connecting-IP`), 200 open rooms, 20 messages per client per second.
 
@@ -59,7 +59,7 @@ and away, everyone uses https://games.shirishve.com.
 
 ## Deploying a new version
 
-On the Air (`ssh -i ~/.ssh/id_ed25519_air shrshk7@Shirishs-M2.local`):
+On the home Mac (over SSH):
 
 ```sh
 cd ~/apps/doodle-games && git pull -q
